@@ -1,11 +1,8 @@
 import click
-from .account import account
-from .instance import instance
-from .network import network
-from .region import region
-from .service import service
+from .logs import logs
+from .sec import sec
 
-cli = click.CommandCollection(sources=[account, instance, network, region, service])
+cli = click.CommandCollection(sources=[sec, logs])
 
 if __name__ == '__main__':
     cli()
