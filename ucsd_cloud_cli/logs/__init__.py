@@ -1,6 +1,6 @@
 import click
+from .cloudtrail import cloudtrail
+from .cloudwatch import cloudwatch
+from .vpc import vpc
 
-@click.group()
-def logs():
-    pass
-    
+logs = click.CommandCollection(sources=[cloudtrail, cloudwatch, vpc])
