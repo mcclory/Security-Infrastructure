@@ -1,5 +1,5 @@
 import click
 
 @click.command()
-def cloudwatch():
+def snapshot():
     pass
