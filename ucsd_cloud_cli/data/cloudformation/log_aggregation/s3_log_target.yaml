@@ -1,0 +1,33 @@
+Parameters:
+  LogMoveToGlacierDays:
+    Type: Number
+    MinValue: 1
+    Default: 365
+    MaxValue: 3653 # 10 yrs
+  LogDeleteFromGlacierDays:
+    Type: Number
+    MinValue: 1
+    Default: 2557 # 7 Yrs
+    MaxValue: 7305 # 20 yrs
+Resouces:
+  LogTargetS3Bucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      AccessControl: LogDeliveryWrite
+      LifecycleConfiguration:
+        Rules:
+        - Id: GlacierRule
+          Prefix: glacier
+          Status: Enabled
+          ExpirationInDays:
+            Ref: LogDeleteFromGlacierDays # Parameter
+          Transitions:
+            - TransitionInDays:
+                Ref: LogMoveToGlacierDays # 1 yr default
+              StorageClass: Glacier
+# https://docs.aws.amazon.com/AmazonCloudWatch/latest/logs/S3ExportTasks.html - need to set security on bucket for this to hit cross-account
+# Bucket policy for cross-account delivery of cloudtrail: https://docs.aws.amazon.com/awscloudtrail/latest/userguide/cloudtrail-set-bucket-policy-for-multiple-accounts.html
+# CloudWatch log delivery - https://docs.aws.amazon.com/AmazonCloudWatch/latest/logs/CrossAccountSubscriptions.html
+  SplunkLogForwarder:
+    Type: AWS::Lambda::Function
+    Properties: {}
