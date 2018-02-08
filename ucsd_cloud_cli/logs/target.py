@@ -3,8 +3,15 @@ import click
 SUPPORTED_SERVICES = ['cloudtrail', 'cloudwatch', 'vpc_flow_logs']
 
 @click.command()
-def initialize():
-    pass
+def initialize(account_id_list, bucket_name=None, log_file_prefix=None, dry_run=False):
+    """Logging target initializer that generates an appropriate CloudFormation template and then deploys it to create the necessary infrastructure for centralized security logging within the UCSD architecture."""
+
+    if dry_run:
+        print(cloudformation_template)
+    else:
+        # perform calls to AWS and return results to stdout
+        pass
+
 
 
 def _generate_cloudwatch_bucket_policy(bucket_name, account_id_list, log_file_prefix = None):
@@ -13,7 +20,7 @@ def _generate_cloudwatch_bucket_policy(bucket_name, account_id_list, log_file_pr
     Keyword arguments:
     bucket_name -- name of the bucket that this policy will be applied to
     account_id_list -- list of AWS Account ID's that should have access granted to put cloudtrail logs in the aforementioned bucket
-    log_file_prefgix -- s3 key name prefix to insert into the AWS log 'path' when delivering log files to the referenced bucket from CloudWatch in the identified accounts 
+    log_file_prefgix -- s3 key name prefix to insert into the AWS log 'path' when delivering log files to the referenced bucket from CloudWatch in the identified accounts
     """
     if log_file_prefix and not log_file_prefix.endswith('/'):
         log_file_prefix = log_file_prefix + '/'
