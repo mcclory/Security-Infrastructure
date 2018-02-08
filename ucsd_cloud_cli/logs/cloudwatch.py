@@ -1,6 +1,6 @@
 import click
 
-@click.command()
+@click.group()
 def cloudwatch():
     pass
 

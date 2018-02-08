@@ -9,7 +9,12 @@ Parameters:
     MinValue: 1
     Default: 2557 # 7 Yrs
     MaxValue: 7305 # 20 yrs
-Resouces:
+Outputs:
+  LogBucketArn:
+    Description: ARN for the S3 bucket created to house logs shipped from UCSD accounts.
+    Value:
+      Fn::GetAtt: ["LogTargetS3Bucket", "Arn"]
+Resources:
   LogTargetS3Bucket:
     Type: AWS::S3::Bucket
     Properties:
