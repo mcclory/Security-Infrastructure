@@ -82,10 +82,12 @@ def service():
     pass
 
 @account.command('add')
+@click.option('--account-no', '-a', 'account_no')
 def account_add(account_no):
     pass
 
 @service.command('add')
+@click.option('--service-name', 's', 'service_name')
 def add(service_name):
     if service_name.lower() not in SUPPORTED_SERVICES:
         raise NotImplementedError('Service %s is not implemented in this CLI' % service_name)
