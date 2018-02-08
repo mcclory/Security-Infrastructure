@@ -3,7 +3,13 @@ import click
 SUPPORTED_SERVICES = ['cloudtrail', 'cloudwatch', 'vpc_flow_logs']
 
 @click.command()
-def initialize(account_id_list, bucket_name=None, log_file_prefix=None, dry_run=False):
+@click.option('--account_id', '-a', 'account_id_list', multiple=True)
+@click.option('--bucket-name', '-b', envvar='BUCKETNAME')
+@click.option('--log_file_prefix', '-p')
+@click.option('--profile', '-p', 'aws_profile')
+@click.option('--region' '-r', 'aws_region')
+@click.option('--dry_run', is_flag=True)
+def initialize(account_id_list, bucket_name=None, log_file_prefix=None, aws_profile=None, aws_region=None, dry_run=False):
     """Logging target initializer that generates an appropriate CloudFormation template and then deploys it to create the necessary infrastructure for centralized security logging within the UCSD architecture."""
 
     if dry_run:
