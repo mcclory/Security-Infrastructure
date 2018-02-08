@@ -7,15 +7,34 @@ def initialize():
     pass
 
 
-def _generate_cloudwatch_bucket_policy(bucket_name, account_id_list):
+def _generate_cloudwatch_bucket_policy(bucket_name, account_id_list, log_file_prefix = None):
+    """Helper function to generate S3 bucket policies for a given list of account id's provided based on AWS documentation found here: https://docs.aws.amazon.com/awscloudtrail/latest/userguide/cloudtrail-set-bucket-policy-for-multiple-accounts.html
+
+    Keyword arguments:
+    bucket_name -- name of the bucket that this policy will be applied to
+    account_id_list -- list of AWS Account ID's that should have access granted to put cloudtrail logs in the aforementioned bucket
+    log_file_prefgix -- s3 key name prefix to insert into the AWS log 'path' when delivering log files to the referenced bucket from CloudWatch in the identified accounts 
+    """
+    if log_file_prefix and not log_file_prefix.endswith('/'):
+        log_file_prefix = log_file_prefix + '/'
+    elif not log_file_prefix:
+        log_file_prefix = ''
+
     ret_val = {'Version': '2012-10-17'}
     ret_val['statement'] = []
-    ret_val['statement'].append({'Sid': 'AWSCloudTrailACLCheck20131101',
+    ret_val['statement'].append({'Sid': 'AWSCloudTrailACLCheck20180208',
                                  'Effect': 'Allow',
-                                 'Principal': {
-                                    'Service': 'cloudtrail.amazonaws.com'},
+                                 'Principal': {'Service': 'cloudtrail.amazonaws.com'},
                                  'Action': 's3:GetBucketAcl',
                                  'Resource': 'arn:aws:s3:::%s' % bucket_name})
+    ret_val['statement'].append = {'Sid': 'AWSCloudTrailWrite20180208',
+                                   'Effect': 'Allow',
+                                   'Principal': {'Service': 'cloudtrail.amazonaws.com'},
+                                   'Action': 's3:PutObject',
+                                   'Resource': ['arn:aws:s3:::%s/%sAWSLogs/%s/*' % (bucket_name, log_file_prefix, account_id) for account_id in account_id_list],
+                                   'Condition': {'StringEquals': {'s3:x-amz-acl': 'bucket-owner-full-control'}}}
+
+    return ret_val
 
 @click.group()
 def account():
