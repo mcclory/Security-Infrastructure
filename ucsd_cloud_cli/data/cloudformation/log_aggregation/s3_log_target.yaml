@@ -15,6 +15,21 @@ Outputs:
     Value:
       Fn::GetAtt: ["LogTargetS3Bucket", "Arn"]
 Resources:
+  # create kinesis and lambda iam roles per https://docs.aws.amazon.com/AmazonCloudWatch/latest/logs/CreateDestination.html
+  LogIngestStream:
+    Type: AWS::Kinesis::Stream
+    Properties:
+      ShardCount: 1
+  LogIngestIAMPolicy:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument: {
+          "Statement": {
+            "Effect": "Allow",
+            "Principal": { "Service": {"Fn::Join": [".", ["logs", {"Ref": "AWS::Region"}, "amazonaws.com"]]} },
+            "Action": "sts:AssumeRole"
+          }
+        }
   LogTargetS3Bucket:
     Type: AWS::S3::Bucket
     Properties:

@@ -1,0 +1,21 @@
+Parameters: {}
+Resources:
+  IAMRoleArn:
+    Type: AWS::IAM::Role
+    Properties: {}
+  VPCFlowLogSubscriptionFilter:
+    Type: AWS::Log::SubscriptionFilter
+    Properties:
+      DestinationArn:
+      FilterPattern:
+      LogGroupName: !Ref LogGroup
+      RoleArn:
+  OtherLogSubscriptionFilter:
+    Type: AWS::Log::SubscriptionFilter
+    Properties:
+      DestinationArn:
+      FilterPattern:
+      LogGroupName: !Ref LogGroup
+      RoleArn:
+  LogGroup:
+    Type: AWS::Log::LogGroup
