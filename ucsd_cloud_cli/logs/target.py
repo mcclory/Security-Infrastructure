@@ -7,6 +7,11 @@ log_aggregation_cf = os.path.join(cf_data_dir, 'log_aggregation')
 SUPPORTED_SERVICES = ['cloudtrail', 'cloudwatch', 'vpc_flow_logs']
 
 @click.group()
+def cli():
+    pass
+
+
+@cli.group()
 def target():
     pass
 
@@ -72,34 +77,3 @@ def _generate_cloudwatch_bucket_policy(bucket_name, account_id_list, log_file_pr
                                  'Condition': {'StringEquals': {'s3:x-amz-acl': 'bucket-owner-full-control'}}})
 
     return ret_val
-
-@click.group()
-def account():
-    pass
-
-@click.group()
-def service():
-    pass
-
-@account.command('add')
-@click.option('--account-no', '-a', 'account_no')
-def account_add(account_no):
-    pass
-
-@service.command('add')
-@click.option('--service-name', 's', 'service_name')
-def add(service_name):
-    if service_name.lower() not in SUPPORTED_SERVICES:
-        raise NotImplementedError('Service %s is not implemented in this CLI' % service_name)
-    pass
-
-
-@account.command('remove')
-def account_add(account_no):
-    pass
-
-@service.command('remove')
-def service_remove(service_name):
-    if service_name.lower() not in SUPPORTED_SERVICES:
-        raise NotImplementedError('Service %s is not implemented in this CLI' % service_name)
-    pass
