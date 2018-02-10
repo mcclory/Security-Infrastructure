@@ -29,10 +29,12 @@ def generate(stream_arn, role_arn, dry_run):
 
     delivery_stream_arn = t.add_parameter(Parameter('MasterAccountDeliveryARN',
                                           Type="String",
+                                          Default=stream_arn,
                                           Description="ARN of the Kinesis stream to send logs to."))
 
     delivery_role_arn = t.add_parameter(Parameter('MasterAccountRoleARN',
                                         Type="String",
+                                        Default=role_arn,
                                         Description="ARN of the Role created to allow CloudWatchLogs to dump logs to the log Kinesis stream"))
 
     cwl_group_retention = t.add_parameter(Parameter("LogGroupRetentionInDays",
