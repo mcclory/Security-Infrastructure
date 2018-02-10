@@ -1,5 +1,49 @@
 {
+    "Outputs": {
+        "CloudTrailARN": {
+            "Description": "ARN of the CloudTrail Trail configured for this log source deployment.",
+            "Value": {
+                "Fn::GetAtt": [
+                    "SecurityTrail",
+                    "Arn"
+                ]
+            }
+        },
+        "CloudWatchLogGroup": {
+            "Description": "ARN of the CloudWatch Log Group created to flow logs to the centralized logging stream.",
+            "Value": {
+                "Fn::GetAtt": [
+                    "SecurityLogShippingGroup",
+                    "Arn"
+                ]
+            }
+        }
+    },
     "Parameters": {
+        "CloudTrailBucketName": {
+            "Description": "Name of the S3 bucket to ship logs to in the centralized aggregation account.",
+            "Type": "String"
+        },
+        "CloudTrailIncludeGlobal": {
+            "Default": true,
+            "Description": "Flag indicating that CloudTrail is configured to capture global service events.",
+            "Type": "Boolean"
+        },
+        "CloudTrailIsLogging": {
+            "Default": true,
+            "Description": "Flag indicating that CloudTrail is configured to send logs.",
+            "Type": "Boolean"
+        },
+        "CloudTrailKeyPrefix": {
+            "Default": "",
+            "Description": "Key name prefix for logs being sent to S3",
+            "Type": "String"
+        },
+        "CloudTrailMultiRegion": {
+            "Default": true,
+            "Description": "Flag indicating that CloudTrail is to be configured in multi-region mode",
+            "Type": "Boolean"
+        },
         "LogGroupRetentionInDays": {
             "Default": 1,
             "Description": "Number of days to retain logs in the CloudWatch Log Group",
@@ -8,10 +52,12 @@
             "Type": "Number"
         },
         "MasterAccountDeliveryARN": {
+            "Default": "",
             "Description": "ARN of the Kinesis stream to send logs to.",
             "Type": "String"
         },
         "MasterAccountRoleARN": {
+            "Default": "",
             "Description": "ARN of the Role created to allow CloudWatchLogs to dump logs to the log Kinesis stream",
             "Type": "String"
         }
@@ -39,6 +85,43 @@
                 }
             },
             "Type": "AWS::Logs::LogGroup"
+        },
+        "SecurityTrail": {
+            "Properties": {
+                "CloudWatchLogsLogGroupArn": {
+                    "Ref": "MasterAccountDeliveryARN"
+                },
+                "CloudWatchLogsRoleArn": {
+                    "Ref": "MasterAccountRoleARN"
+                },
+                "IncludeGlobalServiceEvents": {
+                    "Ref": "CloudTrailIncludeGlobal"
+                },
+                "IsLogging": {
+                    "Ref": "CloudTrailIsLogging"
+                },
+                "IsMultiRegionTrail": {
+                    "Ref": "CloudTrailMultiRegion"
+                },
+                "S3BucketName": {
+                    "Ref": "CloudTrailBucketName"
+                },
+                "S3KeyPrefix": {
+                    "Ref": "CloudTrailKeyPrefix"
+                },
+                "TrailName": {
+                    "Fn::Join": [
+                        "-",
+                        [
+                            "SecurityTrail",
+                            {
+                                "Ref": "AWS::Region"
+                            }
+                        ]
+                    ]
+                }
+            },
+            "Type": "AWS::CloudTrail::Trail"
         }
     }
 }
