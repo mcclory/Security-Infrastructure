@@ -21,13 +21,16 @@ def source():
     pass
 
 @source.command('generate')
-def generate():
+@click.option('--stream-arn', '-s', 'stream_arn', prompt='ARN of the Kinesis stream in the centrally managed account.' if os.getenv('CLI_PROMPT') else None)
+@click.option('--role-arn', '-r', 'role_arn', prompt='ARN of the IAM Role for access to the centrally located Kinesis stream.' if os.getenv('CLI_PROMPT') else None)
+@click.option('--dry-run', 'dry_run', is_flag=True, prompt='Dry Run' if os.getenv('CLI_PROMPT') else None)
+def generate(stream_arn, role_arn, dry_run):
     t = Template()
 
     delivery_stream_arn = t.add_parameter(Parameter('MasterAccountDeliveryARN',
                                           Type="String",
                                           Description="ARN of the Kinesis stream to send logs to."))
-                                          
+
     delivery_role_arn = t.add_parameter(Parameter('MasterAccountRoleARN',
                                         Type="String",
                                         Description="ARN of the Role created to allow CloudWatchLogs to dump logs to the log Kinesis stream"))
@@ -47,3 +50,10 @@ def generate():
                                       RoleArn=Ref(delivery_role_arn),
                                       LogGroupName=Ref(cwl_group),
                                       FilterPattern="{$.userIdentity.type = Root}"))
+
+     if dry_run:
+         print(t.to_json())
+     else:
+         template_name = 'log_sources.json'
+         with open (os.path.join(log_aggregation_cf, template_name), 'w') as f:
+             f.write(t.to_json())
