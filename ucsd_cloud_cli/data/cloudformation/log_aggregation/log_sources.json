@@ -1,0 +1,44 @@
+{
+    "Parameters": {
+        "LogGroupRetentionInDays": {
+            "Default": 1,
+            "Description": "Number of days to retain logs in the CloudWatch Log Group",
+            "MaxValue": 14,
+            "MinValue": 1,
+            "Type": "Number"
+        },
+        "MasterAccountDeliveryARN": {
+            "Description": "ARN of the Kinesis stream to send logs to.",
+            "Type": "String"
+        },
+        "MasterAccountRoleARN": {
+            "Description": "ARN of the Role created to allow CloudWatchLogs to dump logs to the log Kinesis stream",
+            "Type": "String"
+        }
+    },
+    "Resources": {
+        "SecurityLogShippingFilter": {
+            "Properties": {
+                "DestinationArn": {
+                    "Ref": "MasterAccountDeliveryARN"
+                },
+                "FilterPattern": "{$.userIdentity.type = Root}",
+                "LogGroupName": {
+                    "Ref": "SecurityLogShippingGroup"
+                },
+                "RoleArn": {
+                    "Ref": "MasterAccountRoleARN"
+                }
+            },
+            "Type": "AWS::Logs::SubscriptionFilter"
+        },
+        "SecurityLogShippingGroup": {
+            "Properties": {
+                "RetentionInDays": {
+                    "Ref": "LogGroupRetentionInDays"
+                }
+            },
+            "Type": "AWS::Logs::LogGroup"
+        }
+    }
+}
