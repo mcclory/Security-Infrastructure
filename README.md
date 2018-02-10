@@ -27,7 +27,7 @@ source /usr/local/bin/virtualenvwrapper.sh
 
 ## Dependencies and Packages
 
-This toolset leverages the [boto3](https://boto3.readthedocs.io/en/latest/) sdk when interacting with Amazon Web Services' API's and [click](http://click.pocoo.org/5/) to handle the command-line experience and interface.
+This toolset leverages the [boto3](https://boto3.readthedocs.io/en/latest/) sdk when interacting with Amazon Web Services' API's and [click](http://click.pocoo.org/5/) to handle the command-line experience and interface. Additionally, [troposphere](https://github.com/cloudtools/troposphere) is used to compose CloudFormation templates to avoid string-based JSON errors and other easy to make mistakes. 
 
 ## Click CLI
 
