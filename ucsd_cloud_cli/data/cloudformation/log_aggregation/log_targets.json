@@ -64,7 +64,7 @@
         "LogIngestDestination": {
             "Properties": {
                 "DestinationName": "LogIngestDestination",
-                "DestinationPolicy": "{\"Version\": \"2012-10-17\", \"Statement\": [{\"Effect\": \"Allow\", \"Principal\": {\"AWS\": \"123456789012\"}, \"Action\": \"logs.PutSubscriptionFilter\", \"Resource\": \"arn:aws:logs:None:None:destination:LogIngestDestination\"}, {\"Effect\": \"Allow\", \"Principal\": {\"AWS\": \"123456789013\"}, \"Action\": \"logs.PutSubscriptionFilter\", \"Resource\": \"arn:aws:logs:None:None:destination:LogIngestDestination\"}, {\"Effect\": \"Allow\", \"Principal\": {\"AWS\": \"123456789014\"}, \"Action\": \"logs.PutSubscriptionFilter\", \"Resource\": \"arn:aws:logs:None:None:destination:LogIngestDestination\"}]}",
+                "DestinationPolicy": "{\"Version\": \"2012-10-17\", \"Statement\": []}",
                 "RoleArn": {
                     "Fn::GetAtt": [
                         "LogIngestIAMRole",
