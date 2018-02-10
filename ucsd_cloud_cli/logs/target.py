@@ -71,7 +71,7 @@ def generate(deploy_account_id='123456789012', deploy_region_name='us-west-2', a
     Keyword Arguments:
     deploy_account_id -- 'this' account id (where template is being installed) - this is an artifact of how log subscription policies need to be set
     deploy_region_name -- 'this' region (where template is installed) - this is an artifact of how log subscription policies need to be set
-    account_list -- list of accounts that are to be allowed to publish logs into 'this' account (where the template is installed)
+    account_list -- list of accounts that are to be allowed tgit so publish logs into 'this' account (where the template is installed)
     region_list -- list of regions that are being used to deploy into - affects policies created to allow cross-account communciation
     dry_run -- boolean indicates whether template should be printed to screen vs. being saved to file
     """
