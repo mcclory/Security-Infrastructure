@@ -23,13 +23,9 @@ def source():
     pass
 
 @source.command('generate')
-@click.option('--stream-arn', '-s', 'stream_arn', prompt='ARN of the Kinesis stream in the centrally managed account.' if os.getenv('CLI_PROMPT') else None)
-@click.option('--role-arn', '-r', 'role_arn', prompt='ARN of the IAM Role for access to the centrally located Kinesis stream.' if os.getenv('CLI_PROMPT') else None)
-@click.option('--dry-run', 'dry_run', is_flag=True, prompt='Dry Run' if os.getenv('CLI_PROMPT') else None)
-def generate(stream_arn, role_arn, dry_run):
-    stream_arn = stream_arn if stream_arn else ""
-    role_arn = role_arn if role_arn else ""
-
+@click.option('--dry-run', 'dry_run', is_flag=True, prompt='Dry Run' if os.getenv('CLI_PROMPT') else None, help="boolean indicates whether template should be printed to screen vs. being saved to file")
+def generate(dry_run):
+    """CloudFormation template generator to apply to all accounts which configures log sources to publish to the centralized log target(s) specified"""
     t = Template()
 
     #
@@ -39,12 +35,12 @@ def generate(stream_arn, role_arn, dry_run):
         # Parameters
     delivery_stream_arn = t.add_parameter(Parameter('MasterAccountDeliveryARN',
                                           Type="String",
-                                          Default=stream_arn,
+                                          Default="",
                                           Description="ARN of the Kinesis stream to send logs to."))
 
     delivery_role_arn = t.add_parameter(Parameter('MasterAccountRoleARN',
                                         Type="String",
-                                        Default=role_arn,
+                                        Default="",
                                         Description="ARN of the Role created to allow CloudWatchLogs to dump logs to the log Kinesis stream"))
 
         # resources
