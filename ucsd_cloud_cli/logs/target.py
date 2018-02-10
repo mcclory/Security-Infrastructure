@@ -1,7 +1,9 @@
 import click
-from .. import cf_data_dir
 import json
 import os
+
+data_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.realpath(__file__))), 'data')
+cf_data_dir = os.path.join(data_dir, 'cloudformation')
 
 from troposphere import GetAtt, Ref, Join, Template, AccountId, Region, Output, Parameter
 import troposphere.iam as iam
@@ -169,7 +171,6 @@ def generate(deploy_account_id='123456789012', deploy_region_name='us-west-2', a
         template_name = 'log_targets.json'
         with open (os.path.join(log_aggregation_cf, template_name), 'w') as f:
             f.write(t.to_json())
-
 
 
 def _generate_log_destination_policy(log_destination_name, region, account_id, account_list=[]):
