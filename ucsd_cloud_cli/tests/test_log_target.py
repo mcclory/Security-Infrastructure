@@ -4,6 +4,7 @@ import unittest
 import json
 from click.testing import CliRunner
 from ucsd_cloud_cli import cli
+from .cfn2py import validate_doc
 
 class TestLogTarget(unittest.TestCase):
 
@@ -19,3 +20,7 @@ class TestLogTarget(unittest.TestCase):
         result = self.runner.invoke(cli, ['target', 'generate', '--help'])
         for arg_name in ['-d', '--deploy-account-id', '-n', '--deploy-region-name', '-r', '--region', '-a', '--account', '--dry-run']:
             assert arg_name in result.output
+
+    def test_cfn_structure(self):
+        result = self.runner.invoke(cli, ['target', 'generate', '--dry-run'])
+        assert validate_doc(result.output)
