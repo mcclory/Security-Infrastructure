@@ -1,15 +1,55 @@
-from setuptools import setup
+import sys
+from setuptools import setup, find_packages
+import pip
+
+from pip.req import parse_requirements
+
+NAME = "ucsd_cloud_cli"
+VERSION = "0.1.0"
+
+# To install the library, run the following
+#
+# python setup.py install
+#
+# prerequisite: setuptools
+# http://pypi.python.org/pypi/setuptools
+
+parsed_requirements = parse_requirements(
+    'requirements/prod.txt',
+    session=pip.download.PipSession()
+)
+
+parsed_test_requirements = parse_requirements(
+    'requirements/test.txt',
+    session=pip.download.PipSession()
+)
+
+requirements = [str(ir.req) for ir in parsed_requirements]
+test_requirements = [str(tr.req) for tr in parsed_test_requirements]
 
 setup(
-    name='ucsd_cloud_cli',
-    version='0.1.0',
-    py_modules=['ucsd_cloud_cli'],
-    install_requires=[
-        'Click',
-        'boto3'
+    name=NAME,
+    version=VERSION,
+    description="UCSD Cloud CLI Wrapper",
+    author_email="pmdev@introspectdata.com",
+    url="https://introspectdata.com/IntrospectData/ucsd-cloud-cli",
+    keywords=["Click", "UCSD Cloud CLI"],
+    install_requires=requirements,
+    packages=find_packages(),
+    package_data={'': ['data/cloudformation/*']},
+    include_package_data=True,
+    license="Private",
+    classifiers=[
+        'Development Status :: 2 - Pre-Alpha',
+        'Intended Audience :: Developers',
+        'License :: Other/Proprietary License',
+        'Natural Language :: English',
+        'Programming Language :: Python :: 3.4',
+        'Programming Language :: Python :: 3.5'
     ],
     entry_points='''
         [console_scripts]
         ccli=ucsd_cloud_cli:__main__
     ''',
+    tests_require=test_requirements
 )

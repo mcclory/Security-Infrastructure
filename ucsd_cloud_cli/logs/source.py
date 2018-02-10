@@ -1,7 +1,9 @@
 import click
-from .. import cf_data_dir
 import yaml
 import os
+
+data_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.realpath(__file__))), 'data')
+cf_data_dir = os.path.join(data_dir, 'cloudformation')
 
 from troposphere import GetAtt, Ref, Join, Template, AccountId, Region, Output, Parameter
 import troposphere.iam as iam
@@ -31,8 +33,10 @@ def generate(stream_arn, role_arn, dry_run):
     t = Template()
 
     #
-    # CloudWatch Logs setup
+    # CloudWatch Logs setup - Set up shipping to 'centralized' account
     #
+
+        # Parameters
     delivery_stream_arn = t.add_parameter(Parameter('MasterAccountDeliveryARN',
                                           Type="String",
                                           Default=stream_arn,
@@ -43,6 +47,7 @@ def generate(stream_arn, role_arn, dry_run):
                                         Default=role_arn,
                                         Description="ARN of the Role created to allow CloudWatchLogs to dump logs to the log Kinesis stream"))
 
+        # resources
     cwl_group_retention = t.add_parameter(Parameter("LogGroupRetentionInDays",
         Type="Number",
         Description="Number of days to retain logs in the CloudWatch Log Group",
@@ -59,13 +64,16 @@ def generate(stream_arn, role_arn, dry_run):
                                       LogGroupName=Ref(cwl_group),
                                       FilterPattern="{$.userIdentity.type = Root}"))
 
+        # outputs
     t.add_output(Output('CloudWatchLogGroup',
                  Value=GetAtt(cwl_group, "Arn"),
                  Description="ARN of the CloudWatch Log Group created to flow logs to the centralized logging stream."))
 
     #
-    # CloudTrail setup
+    # CloudTrail setup - ship to S3 in 'central account' as well as cloudtrail logs if it'll let us :)
     #
+
+        # parameters
     ct_is_logging = t.add_parameter(Parameter('CloudTrailIsLogging',
                                     Type="Boolean",
                                     Default=True,
@@ -89,6 +97,7 @@ def generate(stream_arn, role_arn, dry_run):
                                         Default='',
                                         Description='Key name prefix for logs being sent to S3'))
 
+        # resources
     ct_trail = t.add_resource(ct.Trail(
                               "SecurityTrail",
                               TrailName=Join("-", ["SecurityTrail", Region]),
@@ -100,6 +109,7 @@ def generate(stream_arn, role_arn, dry_run):
                               IsMultiRegionTrail=Ref(ct_multi_region),
                               IsLogging=Ref(ct_is_logging)))
 
+        # outputs
     t.add_output(Output('CloudTrailARN',
                         Description="ARN of the CloudTrail Trail configured for this log source deployment.",
                         Value=GetAtt(ct_trail, "Arn")))

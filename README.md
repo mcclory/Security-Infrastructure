@@ -1,4 +1,4 @@
-# UCSD-Cloud-Cli
+# UCSD-Cloud-Cli 0.1.0
 
 This toolset is designed to enable command-line-level access to common functions related to the security workflow(s) defined within this readme document for the UCSD team to use when configuring their Amazon Web Services environment(s).
 
