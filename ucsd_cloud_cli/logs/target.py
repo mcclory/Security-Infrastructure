@@ -163,12 +163,12 @@ def generate(deploy_account_id='123456789012', deploy_region_name='us-west-2', a
                  Value=AccountId,
                  Description="Convenience Output for referencing AccountID of the log aggregation account"))
 
-     if dry_run:
-         print(t.to_json())
-     else:
-         template_name = 'log_targets.json'
-         with open (os.path.join(log_aggregation_cf, template_name), 'w') as f:
-             f.write(t.to_json())
+    if dry_run:
+        print(t.to_json())
+    else:
+        template_name = 'log_targets.json'
+        with open (os.path.join(log_aggregation_cf, template_name), 'w') as f:
+            f.write(t.to_json())
 
 
 

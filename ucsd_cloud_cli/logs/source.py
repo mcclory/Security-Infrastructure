@@ -51,9 +51,9 @@ def generate(stream_arn, role_arn, dry_run):
                                       LogGroupName=Ref(cwl_group),
                                       FilterPattern="{$.userIdentity.type = Root}"))
 
-     if dry_run:
-         print(t.to_json())
-     else:
-         template_name = 'log_sources.json'
-         with open (os.path.join(log_aggregation_cf, template_name), 'w') as f:
-             f.write(t.to_json())
+    if dry_run:
+        print(t.to_json())
+    else:
+        template_name = 'log_sources.json'
+        with open (os.path.join(log_aggregation_cf, template_name), 'w') as f:
+            f.write(t.to_json())
