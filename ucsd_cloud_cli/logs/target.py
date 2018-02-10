@@ -153,6 +153,15 @@ def generate(deploy_account_id='123456789012', deploy_region_name='us-west-2', a
         with open (os.path.join(log_aggregation_cf, template_name), 'w') as f:
             f.write(t.to_json())
 
+    t.add_output(Output("StreamArn",
+                 Value=GetAtt(log_stream, "Arn"),
+                 Description="ARN of the Kinesis stream for log aggregation via CloudWatch Logs"))
+
+    t.add_output(Output("DeploymentAccount",
+                 Value=AccountId,
+                 Description="Convenience Output for referencing AccountID of the log aggregation account"))
+
+
 def _generate_log_destination_policy(log_destination_name, region, account_id, account_list=[]):
     statements = []
     for account_no in account_list:
