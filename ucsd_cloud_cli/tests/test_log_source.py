@@ -7,9 +7,16 @@ from ucsd_cloud_cli import cli
 
 class TestLogSource(unittest.TestCase):
 
-    def test_generate_valid_json(self):
-        runner = CliRunner()
+    def setUp(self):
+        self.runner = CliRunner()
 
-        result = runner.invoke(cli, ['source', 'generate', '--dry-run'])
+    def test_generate_valid_json(self):
+        result = self.runner.invoke(cli, ['source', 'generate', '--dry-run'])
         assert result.exit_code == 0
         assert type(json.loads(result.output)) == dict
+
+
+    def test_generate_help(self):
+        result = self.runner.invoke(cli, ['source', 'generate', '--help'])
+        for arg_name in ['--dry-run', '--help']:
+            assert arg_name in result.output

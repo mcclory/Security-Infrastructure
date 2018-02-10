@@ -35,7 +35,7 @@ def target():
 @click.option('--log-file-prefix', 'log_file_prefix', '-p')
 @click.option('--profile', '-p', 'aws_profile', envvar='AWS_PROFILE')
 @click.option('--region', '-r', 'aws_region', envvar='AWS_REGION')
-@click.option('--dry-run', 'dry_run', is_flag=True)
+@click.option('--dry-run', 'dry_run', is_flag=True, prompt='Dry Run' if os.getenv('CLI_PROMPT') else None, help="boolean indicates whether template should be printed to screen vs. being saved to file")
 def initialize(account_id_list, bucket_name=None, log_file_prefix=None, aws_profile=None, aws_region=None, dry_run=False):
     """Logging target initializer that generates an appropriate CloudFormation template and then deploys it to create the necessary infrastructure for centralized security logging within the UCSD architecture."""
     template_name = 's3_log_target.yaml'
@@ -62,21 +62,13 @@ def initialize(account_id_list, bucket_name=None, log_file_prefix=None, aws_prof
 
 
 @target.command()
-@click.option('--deploy-account-id', '-d', 'deploy_account_id', prompt='Deploy Account ID' if os.getenv('CLI_PROMPT') else None)
-@click.option('--deploy-region-name', '-n', 'deploy_region_name', prompt='Deploy Region Name' if os.getenv('CLI_PROMPT') else None)
-@click.option('-r', '--region', 'region_list', multiple=True, prompt='Child Account Region List' if os.getenv('CLI_PROMPT') else None)
-@click.option('-a', '--account', 'account_list', multiple=True, prompt='Child Account ID List' if os.getenv('CLI_PROMPT') else None)
-@click.option('--dry-run', 'dry_run', is_flag=True, prompt='Dry Run' if os.getenv('CLI_PROMPT') else None)
+@click.option('--deploy-account-id', '-d', 'deploy_account_id', prompt='Deploy Account ID' if os.getenv('CLI_PROMPT') else None, help="'this' account id (where template is being installed) - this is an artifact of how log subscription policies need to be set")
+@click.option('--deploy-region-name', '-n', 'deploy_region_name', prompt='Deploy Region Name' if os.getenv('CLI_PROMPT') else None, help="'this' region (where template is installed) - this is an artifact of how log subscription policies need to be set")
+@click.option('-r', '--region', 'region_list', multiple=True, prompt='Child Account Region List' if os.getenv('CLI_PROMPT') else None, help="list of accounts that are to be allowed tgit so publish logs into 'this' account (where the template is installed)")
+@click.option('-a', '--account', 'account_list', multiple=True, prompt='Child Account ID List' if os.getenv('CLI_PROMPT') else None, help="list of regions that are being used to deploy into - affects policies created to allow cross-account communciation")
+@click.option('--dry-run', 'dry_run', is_flag=True, prompt='Dry Run' if os.getenv('CLI_PROMPT') else None, help="boolean indicates whether template should be printed to screen vs. being saved to file")
 def generate(deploy_account_id='123456789012', deploy_region_name='us-west-2', account_list=None, region_list=None, dry_run=False):
-    """CloudFormation template generator for use in creating the resources required to capture logs in a centrally managed account per UCSD standards.
-
-    Keyword Arguments:
-    deploy_account_id -- 'this' account id (where template is being installed) - this is an artifact of how log subscription policies need to be set
-    deploy_region_name -- 'this' region (where template is installed) - this is an artifact of how log subscription policies need to be set
-    account_list -- list of accounts that are to be allowed tgit so publish logs into 'this' account (where the template is installed)
-    region_list -- list of regions that are being used to deploy into - affects policies created to allow cross-account communciation
-    dry_run -- boolean indicates whether template should be printed to screen vs. being saved to file
-    """
+    """CloudFormation template generator for use in creating the resources required to capture logs in a centrally managed account per UCSD standards."""
     if type(account_list) == tuple:
         account_list = list(account_list)
 
