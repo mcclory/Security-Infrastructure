@@ -1,7 +1,7 @@
 import click
 from .target import cli as target
-from .accounts import cli as account
+from .source import cli as source
 from .. import cf_data_dir
 
 
-logs = click.CommandCollection(sources=[target, account])
+logs = click.CommandCollection(sources=[target, source])

@@ -1,0 +1,237 @@
+{
+    "Parameters": {
+        "BucketName": {
+            "AllowedPattern": "([a-z]|[0-9])+",
+            "Description": "Name to assign to the central logging retention bucket",
+            "MaxLength": 64,
+            "MinLength": 2,
+            "Type": "String"
+        },
+        "GlacierExpirationInDays": {
+            "Default": 2555,
+            "Description": "Number of days until logs are expired from Glacier and deleted",
+            "Type": "Number"
+        },
+        "LogS3ExpirationInDays": {
+            "Default": 365,
+            "Description": "Number of days until logs are expired from S3 and transitioned to Glacier",
+            "Type": "Number"
+        },
+        "LogStreamRetentionPeriod": {
+            "Default": 4,
+            "Description": "Number of hours to retain logs in the Kinesis stream.",
+            "MaxValue": 24,
+            "MinValue": 1,
+            "Type": "Number"
+        },
+        "LogStreamShardCount": {
+            "Default": 1,
+            "Description": "Number of shards to create within the AWS Kinesis stream created to handle CloudWatch Logs.",
+            "MaxValue": 64,
+            "MinValue": 1,
+            "Type": "Number"
+        }
+    },
+    "Resources": {
+        "LogDeliveryBucket": {
+            "Properties": {
+                "AccessControl": "LogDeliveryWrite",
+                "BucketName": {
+                    "Ref": "BucketName"
+                },
+                "LifecycleConfiguration": {
+                    "Rules": [
+                        {
+                            "ExpirationInDays": {
+                                "Ref": "LogS3ExpirationInDays"
+                            },
+                            "Id": "S3ToGlacierTransition",
+                            "Status": "Enabled",
+                            "Transitions": [
+                                {
+                                    "StorageClass": "Glacier",
+                                    "TransitionInDays": {
+                                        "Ref": "GlacierExpirationInDays"
+                                    }
+                                }
+                            ]
+                        }
+                    ]
+                }
+            },
+            "Type": "AWS::S3::Bucket"
+        },
+        "LogIngestDestination": {
+            "Properties": {
+                "DestinationName": "LogIngestDestination",
+                "DestinationPolicy": "{\"Version\": \"2012-10-17\", \"Statement\": [{\"Effect\": \"Allow\", \"Principal\": {\"AWS\": \"123456789012\"}, \"Action\": \"logs.PutSubscriptionFilter\", \"Resource\": \"arn:aws:logs:None:None:destination:LogIngestDestination\"}, {\"Effect\": \"Allow\", \"Principal\": {\"AWS\": \"123456789013\"}, \"Action\": \"logs.PutSubscriptionFilter\", \"Resource\": \"arn:aws:logs:None:None:destination:LogIngestDestination\"}, {\"Effect\": \"Allow\", \"Principal\": {\"AWS\": \"123456789014\"}, \"Action\": \"logs.PutSubscriptionFilter\", \"Resource\": \"arn:aws:logs:None:None:destination:LogIngestDestination\"}]}",
+                "RoleArn": {
+                    "Fn::GetAtt": [
+                        "LogIngestIAMRole",
+                        "Arn"
+                    ]
+                },
+                "TargetArn": {
+                    "Fn::GetAtt": [
+                        "LogStream",
+                        "Arn"
+                    ]
+                }
+            },
+            "Type": "AWS::Logs::Destination"
+        },
+        "LogIngestIAMPolicy": {
+            "Properties": {
+                "PolicyDocument": {
+                    "Statement": [
+                        {
+                            "Action": [
+                                "kinesis:PutRecord"
+                            ],
+                            "Effect": "Allow",
+                            "Resource": [
+                                {
+                                    "Fn::GetAtt": [
+                                        "LogStream",
+                                        "Arn"
+                                    ]
+                                }
+                            ]
+                        },
+                        {
+                            "Action": [
+                                "iam:PassRole"
+                            ],
+                            "Effect": "Allow",
+                            "Resource": [
+                                {
+                                    "Fn::GetAtt": [
+                                        "LogIngestIAMRole",
+                                        "Arn"
+                                    ]
+                                }
+                            ]
+                        }
+                    ]
+                },
+                "PolicyName": {
+                    "Fn::Join": [
+                        "LogIngestIAMPolicy-",
+                        {
+                            "Ref": "AWS::Region"
+                        }
+                    ]
+                },
+                "Roles": [
+                    {
+                        "Fn::GetAtt": [
+                            "LogIngestIAMRole",
+                            "Arn"
+                        ]
+                    }
+                ]
+            },
+            "Type": "AWS::IAM::Policy"
+        },
+        "LogIngestIAMRole": {
+            "Properties": {
+                "AssumeRolePolicyDocument": {
+                    "Statement": [
+                        {
+                            "Action": [
+                                "sts:AssumeRole"
+                            ],
+                            "Effect": "Allow",
+                            "Principal": {
+                                "Service": {
+                                    "Fn::Join": [
+                                        ".",
+                                        [
+                                            "logs",
+                                            {
+                                                "Ref": "AWS::Region"
+                                            },
+                                            "amazonaws.com"
+                                        ]
+                                    ]
+                                }
+                            }
+                        },
+                        {
+                            "Action": [
+                                "sts:AssumeRole"
+                            ],
+                            "Effect": "Allow",
+                            "Principal": {
+                                "Service": {
+                                    "Fn::Join": [
+                                        ".",
+                                        [
+                                            "logs",
+                                            {
+                                                "Ref": "AWS::Region"
+                                            },
+                                            "amazonaws.com"
+                                        ]
+                                    ]
+                                }
+                            }
+                        },
+                        {
+                            "Action": [
+                                "sts:AssumeRole"
+                            ],
+                            "Effect": "Allow",
+                            "Principal": {
+                                "Service": {
+                                    "Fn::Join": [
+                                        ".",
+                                        [
+                                            "logs",
+                                            {
+                                                "Ref": "AWS::Region"
+                                            },
+                                            "amazonaws.com"
+                                        ]
+                                    ]
+                                }
+                            }
+                        },
+                        {
+                            "Action": [
+                                "sts:AssumeRole"
+                            ],
+                            "Effect": "Allow",
+                            "Principal": {
+                                "Service": {
+                                    "Fn::Join": [
+                                        ".",
+                                        [
+                                            "logs",
+                                            {
+                                                "Ref": "AWS::Region"
+                                            },
+                                            "amazonaws.com"
+                                        ]
+                                    ]
+                                }
+                            }
+                        }
+                    ]
+                }
+            },
+            "Type": "AWS::IAM::Role"
+        },
+        "LogStream": {
+            "Properties": {
+                "RetentionPeriodHours": {
+                    "Ref": "LogStreamShardCount"
+                },
+                "ShardCount": {
+                    "Ref": "LogStreamRetentionPeriod"
+                }
+            },
+            "Type": "AWS::Kinesis::Stream"
+        }
+    }
+}
