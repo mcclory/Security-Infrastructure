@@ -24,21 +24,21 @@
             "MinLength": 2,
             "Type": "String"
         },
-        "GlacierExpirationInDays": {
+        "LogDeleteFromGlacierInDays": {
             "Default": 2555,
             "Description": "Number of days until logs are expired from Glacier and deleted",
             "Type": "Number"
         },
-        "LogS3ExpirationInDays": {
+        "LogMoveToGlacierInDays": {
             "Default": 365,
             "Description": "Number of days until logs are expired from S3 and transitioned to Glacier",
             "Type": "Number"
         },
         "LogStreamRetentionPeriod": {
-            "Default": 4,
+            "Default": 24,
             "Description": "Number of hours to retain logs in the Kinesis stream.",
-            "MaxValue": 24,
-            "MinValue": 1,
+            "MaxValue": 120,
+            "MinValue": 24,
             "Type": "Number"
         },
         "LogStreamShardCount": {
@@ -60,7 +60,7 @@
                     "Rules": [
                         {
                             "ExpirationInDays": {
-                                "Ref": "LogS3ExpirationInDays"
+                                "Ref": "LogDeleteFromGlacierInDays"
                             },
                             "Id": "S3ToGlacierTransition",
                             "Status": "Enabled",
@@ -68,7 +68,7 @@
                                 {
                                     "StorageClass": "Glacier",
                                     "TransitionInDays": {
-                                        "Ref": "GlacierExpirationInDays"
+                                        "Ref": "LogMoveToGlacierInDays"
                                     }
                                 }
                             ]
@@ -87,14 +87,31 @@
                         [
                             "{\"Version\": \"2012-10-17\", \"Statement\":[",
                             "{\"Effect\": \"Allow\", \"Principal\": {\"AWS\": \"",
-                            {
-                                "Ref": "AWS::AccountId"
-                            },
+                            "169929244869",
                             "\"}, \"Action\": \"logs.PutSubscriptionFilter\", \"Resource\": \"arn:aws:logs:",
                             {
                                 "Ref": "AWS::Region"
                             },
-                            ":169929244869:destination:",
+                            ":",
+                            {
+                                "Ref": "AWS::AccountId"
+                            },
+                            ":destination:",
+                            "LogIngestDestination",
+                            "\"}",
+                            ",",
+                            "{\"Version\": \"2012-10-17\", \"Statement\":[",
+                            "{\"Effect\": \"Allow\", \"Principal\": {\"AWS\": \"",
+                            "969379222189",
+                            "\"}, \"Action\": \"logs.PutSubscriptionFilter\", \"Resource\": \"arn:aws:logs:",
+                            {
+                                "Ref": "AWS::Region"
+                            },
+                            ":",
+                            {
+                                "Ref": "AWS::AccountId"
+                            },
+                            ":destination:",
                             "LogIngestDestination",
                             "\"}",
                             ",",
@@ -107,7 +124,11 @@
                             {
                                 "Ref": "AWS::Region"
                             },
-                            ":969379222189:destination:",
+                            ":",
+                            {
+                                "Ref": "AWS::AccountId"
+                            },
+                            ":destination:",
                             "LogIngestDestination",
                             "\"}",
                             "]}"
@@ -165,10 +186,13 @@
                 },
                 "PolicyName": {
                     "Fn::Join": [
-                        "LogIngestIAMPolicy-",
-                        {
-                            "Ref": "AWS::Region"
-                        }
+                        "_",
+                        [
+                            "logingestiampolicy",
+                            {
+                                "Ref": "AWS::Region"
+                            }
+                        ]
                     ]
                 },
                 "Roles": [
@@ -274,10 +298,10 @@
         "LogStream": {
             "Properties": {
                 "RetentionPeriodHours": {
-                    "Ref": "LogStreamShardCount"
+                    "Ref": "LogStreamRetentionPeriod"
                 },
                 "ShardCount": {
-                    "Ref": "LogStreamRetentionPeriod"
+                    "Ref": "LogStreamShardCount"
                 }
             },
             "Type": "AWS::Kinesis::Stream"

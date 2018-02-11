@@ -81,12 +81,12 @@ def generate(account_list=None, region_list=None, dry_run=False):
         MinLength=2,
         MaxLength=64))
 
-    s3_expiration_in_days = t.add_parameter(Parameter("LogS3ExpirationInDays",
+    glacier_migration_days = t.add_parameter(Parameter("LogMoveToGlacierInDays",
         Description="Number of days until logs are expired from S3 and transitioned to Glacier",
         Type="Number",
         Default=365))
 
-    glacier_expiration_in_days = t.add_parameter(Parameter("GlacierExpirationInDays",
+    glacier_deletion_days = t.add_parameter(Parameter("LogDeleteFromGlacierInDays",
         Description="Number of days until logs are expired from Glacier and deleted",
         Type="Number",
         Default=365*7))
@@ -98,10 +98,10 @@ def generate(account_list=None, region_list=None, dry_run=False):
             s3.LifecycleRule(
                 Id="S3ToGlacierTransition",
                 Status="Enabled",
-                ExpirationInDays=Ref(s3_expiration_in_days),
+                ExpirationInDays=Ref(glacier_deletion_days),
                 Transition=s3.LifecycleRuleTransition(
                     StorageClass="Glacier",
-                    TransitionInDays=Ref(glacier_expiration_in_days)))])))
+                    TransitionInDays=Ref(glacier_migration_days)))])))
 
     # Create Kinesis and IAM Roles
     log_stream_shard_count = t.add_parameter(Parameter("LogStreamShardCount",
@@ -114,20 +114,20 @@ def generate(account_list=None, region_list=None, dry_run=False):
     log_stream_retention_period = t.add_parameter(Parameter("LogStreamRetentionPeriod",
         Description = "Number of hours to retain logs in the Kinesis stream.",
         Type="Number",
-        MinValue=1,
-        MaxValue=24,
-        Default=4))
+        MinValue=24,
+        MaxValue=120,
+        Default=24))
 
     log_stream = t.add_resource(k.Stream("LogStream",
-        RetentionPeriodHours=Ref(log_stream_shard_count),
-        ShardCount=Ref(log_stream_retention_period)))
+        RetentionPeriodHours=Ref(log_stream_retention_period),
+        ShardCount=Ref(log_stream_shard_count)))
 
     log_ingest_iam_role = t.add_resource(iam.Role('LogIngestIAMRole',
         AssumeRolePolicyDocument=Policy(
             Statement=[Statement( Effect=Allow, Action=[AssumeRole], Principal=Principal("Service", Join(".", ["logs", Region, "amazonaws.com"]))) for region_name in region_list])))
 
     log_ingest_iam_policy = t.add_resource(iam.PolicyType("LogIngestIAMPolicy",
-        PolicyName=Join("LogIngestIAMPolicy-", Region),
+        PolicyName=Join("_", ["logingestiampolicy", Region]),
         Roles=[GetAtt(log_ingest_iam_role, "Arn")],
         PolicyDocument=Policy(
             Statement=[
@@ -169,13 +169,16 @@ def _generate_log_destination_policy(log_destination_name, account_list=[]):
     string_policy = []
 
     if account_list:
+        account_list.append(AccountId)
         for acct_id in account_list:
             string_policy.append("{\"Version\": \"2012-10-17\", \"Statement\":[")
             string_policy.append("{\"Effect\": \"Allow\", \"Principal\": {\"AWS\": \"")
-            string_policy.append(AccountId)
+            string_policy.append(acct_id)
             string_policy.append("\"}, \"Action\": \"logs.PutSubscriptionFilter\", \"Resource\": \"arn:aws:logs:")
             string_policy.append(Region)
-            string_policy.append(":" + acct_id + ":destination:")
+            string_policy.append(":")
+            string_policy.append(AccountId)
+            string_policy.append(":destination:")
             string_policy.append(log_destination_name)
             string_policy.append("\"}")
             string_policy.append(",")
