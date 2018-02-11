@@ -81,7 +81,39 @@
         "LogIngestDestination": {
             "Properties": {
                 "DestinationName": "LogIngestDestination",
-                "DestinationPolicy": "{\"Version\": \"2012-10-17\", \"Statement\": []}",
+                "DestinationPolicy": {
+                    "Fn::Join": [
+                        "",
+                        [
+                            "{\"Version\": \"2012-10-17\", \"Statement\":[",
+                            "{\"Effect\": \"Allow\", \"Principal\": {\"AWS\": \"",
+                            {
+                                "Ref": "AWS::AccountId"
+                            },
+                            "\"}, \"Action\": \"logs.PutSubscriptionFilter\", \"Resource\": \"arn:aws:logs:",
+                            {
+                                "Ref": "AWS::Region"
+                            },
+                            ":169929244869:destination:",
+                            "LogIngestDestination",
+                            "\"}",
+                            ",",
+                            "{\"Version\": \"2012-10-17\", \"Statement\":[",
+                            "{\"Effect\": \"Allow\", \"Principal\": {\"AWS\": \"",
+                            {
+                                "Ref": "AWS::AccountId"
+                            },
+                            "\"}, \"Action\": \"logs.PutSubscriptionFilter\", \"Resource\": \"arn:aws:logs:",
+                            {
+                                "Ref": "AWS::Region"
+                            },
+                            ":969379222189:destination:",
+                            "LogIngestDestination",
+                            "\"}",
+                            "]}"
+                        ]
+                    ]
+                },
                 "RoleArn": {
                     "Fn::GetAtt": [
                         "LogIngestIAMRole",
