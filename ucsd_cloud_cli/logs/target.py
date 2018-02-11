@@ -62,12 +62,10 @@ def initialize(account_id_list, bucket_name=None, log_file_prefix=None, aws_prof
 
 
 @target.command()
-@click.option('--deploy-account-id', '-d', 'deploy_account_id', prompt='Deploy Account ID' if os.getenv('CLI_PROMPT') else None, help="'this' account id (where template is being installed) - this is an artifact of how log subscription policies need to be set")
-@click.option('--deploy-region-name', '-n', 'deploy_region_name', prompt='Deploy Region Name' if os.getenv('CLI_PROMPT') else None, help="'this' region (where template is installed) - this is an artifact of how log subscription policies need to be set")
 @click.option('-r', '--region', 'region_list', multiple=True, prompt='Child Account Region List' if os.getenv('CLI_PROMPT') else None, help="list of accounts that are to be allowed tgit so publish logs into 'this' account (where the template is installed)")
 @click.option('-a', '--account', 'account_list', multiple=True, prompt='Child Account ID List' if os.getenv('CLI_PROMPT') else None, help="list of regions that are being used to deploy into - affects policies created to allow cross-account communciation")
 @click.option('--dry-run', 'dry_run', is_flag=True, prompt='Dry Run' if os.getenv('CLI_PROMPT') else None, help="boolean indicates whether template should be printed to screen vs. being saved to file")
-def generate(deploy_account_id='123456789012', deploy_region_name='us-west-2', account_list=None, region_list=None, dry_run=False):
+def generate(account_list=None, region_list=None, dry_run=False):
     """CloudFormation template generator for use in creating the resources required to capture logs in a centrally managed account per UCSD standards."""
     if type(account_list) == tuple:
         account_list = list(account_list)
@@ -145,7 +143,7 @@ def generate(deploy_account_id='123456789012', deploy_region_name='us-west-2', a
     log_destination_name = "LogIngestDestination"
     log_destination = t.add_resource(cwl.Destination(log_destination_name,
         DestinationName="LogIngestDestination",
-        DestinationPolicy=_generate_log_destination_policy(log_destination_name, deploy_region_name, deploy_account_id, account_list),
+        DestinationPolicy=_generate_log_destination_policy(log_destination_name, account_list),
         TargetArn=GetAtt(log_stream, "Arn"),
         RoleArn=GetAtt(log_ingest_iam_role, "Arn")))
 
@@ -165,8 +163,24 @@ def generate(deploy_account_id='123456789012', deploy_region_name='us-west-2', a
             f.write(t.to_json())
 
 
-def _generate_log_destination_policy(log_destination_name, region, account_id, account_list=[]):
-    statements = []
-    for account_no in account_list:
-        statements.append({"Effect":"Allow", "Principal":{"AWS": account_no}, "Action": "logs.PutSubscriptionFilter", "Resource": "arn:aws:logs:%s:%s:destination:%s" % (region, account_id, log_destination_name)})
-    return json.dumps({"Version": "2012-10-17", "Statement": statements})
+def _generate_log_destination_policy(log_destination_name, account_list=[]):
+    """Helper method to generate the log destination policy. Per Account in `account_list` build a policy document tha allows the account list for the given region to write to the log destination.
+    This is complicated by the issue that CloudFormation takes this as a string vs. as a Policy/JSON document, so here we are, building a string from a JSON doc in pieces. Given that it's not a JSON doc directly in the template, all this work is to ensure that the AWS AccountID isn't needed as a static string input thus making this portable vs. needing to be hard coded per account."""
+    string_policy = []
+
+    if account_list:
+        for acct_id in account_list:
+            string_policy.append("{\"Version\": \"2012-10-17\", \"Statement\":[")
+            string_policy.append("{\"Effect\": \"Allow\", \"Principal\": {\"AWS\": \"")
+            string_policy.append(AccountId)
+            string_policy.append("\"}, \"Action\": \"logs.PutSubscriptionFilter\", \"Resource\": \"arn:aws:logs:")
+            string_policy.append(Region)
+            string_policy.append(":" + acct_id + ":destination:")
+            string_policy.append(log_destination_name)
+            string_policy.append("\"}")
+            string_policy.append(",")
+        # drop the trailing comma off to make formatting nicer
+        del string_policy[-1]
+
+    string_policy.append("]}")
+    return Join("", string_policy)
