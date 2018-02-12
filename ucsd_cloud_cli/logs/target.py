@@ -73,36 +73,6 @@ def generate(account_list=None, region_list=None, dry_run=False):
     region_list = region_list if region_list else ['us-west-1', 'us-west-2', 'us-east-1', 'us-east-2']
     t = Template()
 
-    # Generate Bucket with Lifecycle Policies
-    bucket_name = t.add_parameter(Parameter("BucketName",
-        Description="Name to assign to the central logging retention bucket",
-        Type="String",
-        AllowedPattern="([a-z]|[0-9])+",
-        MinLength=2,
-        MaxLength=64))
-
-    glacier_migration_days = t.add_parameter(Parameter("LogMoveToGlacierInDays",
-        Description="Number of days until logs are expired from S3 and transitioned to Glacier",
-        Type="Number",
-        Default=365))
-
-    glacier_deletion_days = t.add_parameter(Parameter("LogDeleteFromGlacierInDays",
-        Description="Number of days until logs are expired from Glacier and deleted",
-        Type="Number",
-        Default=365*7))
-
-    bucket = t.add_resource(s3.Bucket("LogDeliveryBucket",
-        BucketName=Ref(bucket_name),
-        AccessControl="LogDeliveryWrite",
-        LifecycleConfiguration=s3.LifecycleConfiguration(Rules=[
-            s3.LifecycleRule(
-                Id="S3ToGlacierTransition",
-                Status="Enabled",
-                ExpirationInDays=Ref(glacier_deletion_days),
-                Transition=s3.LifecycleRuleTransition(
-                    StorageClass="Glacier",
-                    TransitionInDays=Ref(glacier_migration_days)))])))
-
     # Create Kinesis and IAM Roles
     log_stream_shard_count = t.add_parameter(Parameter("LogStreamShardCount",
         Description="Number of shards to create within the AWS Kinesis stream created to handle CloudWatch Logs.",
@@ -127,8 +97,8 @@ def generate(account_list=None, region_list=None, dry_run=False):
             Statement=[Statement( Effect=Allow, Action=[AssumeRole], Principal=Principal("Service", Join(".", ["logs", Region, "amazonaws.com"]))) for region_name in region_list])))
 
     log_ingest_iam_policy = t.add_resource(iam.PolicyType("LogIngestIAMPolicy",
-        PolicyName=Join("_", ["logingestiampolicy", Region]),
-        Roles=[GetAtt(log_ingest_iam_role, "Arn")],
+        PolicyName="logingestpolicy20180211",
+        Roles=[Ref(log_ingest_iam_role)],
         PolicyDocument=Policy(
             Statement=[
                 Statement(
@@ -140,12 +110,46 @@ def generate(account_list=None, region_list=None, dry_run=False):
                     Action=[IAMPassRole],
                     Resource=[GetAtt(log_ingest_iam_role, "Arn")])])))
 
+
+    # Generate Bucket with Lifecycle Policies
+    bucket_name = t.add_parameter(Parameter("BucketName",
+        Description="Name to assign to the central logging retention bucket",
+        Type="String",
+        AllowedPattern="([a-z]|[0-9])+",
+        MinLength=2,
+        MaxLength=64))
+
+    glacier_migration_days = t.add_parameter(Parameter("LogMoveToGlacierInDays",
+        Description="Number of days until logs are expired from S3 and transitioned to Glacier",
+        Type="Number",
+        Default=365))
+
+    glacier_deletion_days = t.add_parameter(Parameter("LogDeleteFromGlacierInDays",
+        Description="Number of days until logs are expired from Glacier and deleted",
+        Type="Number",
+        Default=365*7))
+
+    bucket = t.add_resource(s3.Bucket("LogDeliveryBucket",
+        DependsOn=[log_stream.name],
+        BucketName=Ref(bucket_name),
+        AccessControl="LogDeliveryWrite",
+        LifecycleConfiguration=s3.LifecycleConfiguration(Rules=[
+            s3.LifecycleRule(
+                Id="S3ToGlacierTransition",
+                Status="Enabled",
+                ExpirationInDays=Ref(glacier_deletion_days),
+                Transition=s3.LifecycleRuleTransition(
+                    StorageClass="Glacier",
+                    TransitionInDays=Ref(glacier_migration_days)))])))
+
+    # Log destination setup
     log_destination_name = "LogIngestDestination"
     log_destination = t.add_resource(cwl.Destination(log_destination_name,
         DestinationName="LogIngestDestination",
         DestinationPolicy=_generate_log_destination_policy(log_destination_name, account_list),
         TargetArn=GetAtt(log_stream, "Arn"),
-        RoleArn=GetAtt(log_ingest_iam_role, "Arn")))
+        RoleArn=GetAtt(log_ingest_iam_role, "Arn"),
+        DependsOn=[log_ingest_iam_policy.name, bucket.name]))
 
     t.add_output(Output("StreamArn",
                  Value=GetAtt(log_stream, "Arn"),
@@ -166,24 +170,16 @@ def generate(account_list=None, region_list=None, dry_run=False):
 def _generate_log_destination_policy(log_destination_name, account_list=[]):
     """Helper method to generate the log destination policy. Per Account in `account_list` build a policy document tha allows the account list for the given region to write to the log destination.
     This is complicated by the issue that CloudFormation takes this as a string vs. as a Policy/JSON document, so here we are, building a string from a JSON doc in pieces. Given that it's not a JSON doc directly in the template, all this work is to ensure that the AWS AccountID isn't needed as a static string input thus making this portable vs. needing to be hard coded per account."""
-    string_policy = []
+    policy_doc = []
 
-    if account_list:
-        account_list.append(AccountId)
-        for acct_id in account_list:
-            string_policy.append("{\"Version\": \"2012-10-17\", \"Statement\":[")
-            string_policy.append("{\"Effect\": \"Allow\", \"Principal\": {\"AWS\": \"")
-            string_policy.append(acct_id)
-            string_policy.append("\"}, \"Action\": \"logs.PutSubscriptionFilter\", \"Resource\": \"arn:aws:logs:")
-            string_policy.append(Region)
-            string_policy.append(":")
-            string_policy.append(AccountId)
-            string_policy.append(":destination:")
-            string_policy.append(log_destination_name)
-            string_policy.append("\"}")
-            string_policy.append(",")
-        # drop the trailing comma off to make formatting nicer
-        del string_policy[-1]
-
-    string_policy.append("]}")
-    return Join("", string_policy)
+    policy_doc.append('{"Version" : "2012-10-17","Statement" : [')
+    for source_account_id in account_list:
+      policy_doc.append('{"Sid" : "","Effect" : "Allow","Principal" : {"AWS" : "')
+      policy_doc.append(source_account_id)
+      policy_doc.append('"},"Action" : "logs:PutSubscriptionFilter","Resource" : "arn:aws:logs:')
+      policy_doc.append(Join(':', [Region, AccountId]))
+      policy_doc.append(':destination:testDestination"}')
+      policy_doc.append(',')
+    del policy_doc[-1]
+    policy_doc.append(']}')
+    return Join("", policy_doc)
