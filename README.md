@@ -27,7 +27,7 @@ source /usr/local/bin/virtualenvwrapper.sh
 
 ## Dependencies and Packages
 
-This toolset leverages the [boto3](https://boto3.readthedocs.io/en/latest/) sdk when interacting with Amazon Web Services' API's and [click](http://click.pocoo.org/5/) to handle the command-line experience and interface. Additionally, [troposphere](https://github.com/cloudtools/troposphere) is used to compose CloudFormation templates to avoid string-based JSON errors and other easy to make mistakes. 
+This toolset leverages the [boto3](https://boto3.readthedocs.io/en/latest/) sdk when interacting with Amazon Web Services' API's and [click](http://click.pocoo.org/5/) to handle the command-line experience and interface. Additionally, [troposphere](https://github.com/cloudtools/troposphere) is used to compose CloudFormation templates to avoid string-based JSON errors and other easy to make mistakes.
 
 ## Click CLI
 
@@ -62,3 +62,11 @@ export CLI_PROMPT=TRUE
 | Secuity Test Account | 802640662990 |
 | UCSD Test | 969379222189 |
 | Infrastructure Test Account | 169929244869 |
+
+## Test/Validation Commands
+
+Command to generate target CloudFormation template for our 3 test accounts:
+
+```bash
+python -m ucsd_cloud_cli target generate -a 802640662990 -a 969379222189 -a 169929244869
+```
