@@ -71,17 +71,20 @@ def generate(dry_run):
 
         # parameters
     ct_is_logging = t.add_parameter(Parameter('CloudTrailIsLogging',
-                                    Type="Boolean",
-                                    Default=True,
+                                    Type="String",
+                                    Default="false",
+                                    AllowedValues=["true", "false"],
                                     Description="Flag indicating that CloudTrail is configured to send logs."))
 
     ct_include_global = t.add_parameter(Parameter('CloudTrailIncludeGlobal',
-                                        Type="Boolean",
-                                        Default=True,
+                                        Type="String",
+                                        Default="true",
+                                        AllowedValues=["true", "false"],
                                         Description="Flag indicating that CloudTrail is configured to capture global service events."))
     ct_multi_region = t.add_parameter(Parameter('CloudTrailMultiRegion',
-                                      Type="Boolean",
-                                      Default=True,
+                                      Type="String",
+                                      Default="true",
+                                      AllowedValues=["true", "false"],
                                       Description="Flag indicating that CloudTrail is to be configured in multi-region mode"))
 
     ct_s3_bucket = t.add_parameter(Parameter('CloudTrailBucketName',

@@ -25,14 +25,22 @@
             "Type": "String"
         },
         "CloudTrailIncludeGlobal": {
-            "Default": true,
+            "AllowedValues": [
+                "true",
+                "false"
+            ],
+            "Default": "true",
             "Description": "Flag indicating that CloudTrail is configured to capture global service events.",
-            "Type": "Boolean"
+            "Type": "String"
         },
         "CloudTrailIsLogging": {
-            "Default": true,
+            "AllowedValues": [
+                "true",
+                "false"
+            ],
+            "Default": "false",
             "Description": "Flag indicating that CloudTrail is configured to send logs.",
-            "Type": "Boolean"
+            "Type": "String"
         },
         "CloudTrailKeyPrefix": {
             "Default": "",
@@ -40,9 +48,13 @@
             "Type": "String"
         },
         "CloudTrailMultiRegion": {
-            "Default": true,
+            "AllowedValues": [
+                "true",
+                "false"
+            ],
+            "Default": "true",
             "Description": "Flag indicating that CloudTrail is to be configured in multi-region mode",
-            "Type": "Boolean"
+            "Type": "String"
         },
         "LogGroupRetentionInDays": {
             "Default": 1,
