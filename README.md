@@ -33,13 +33,25 @@ This toolset leverages the [boto3](https://boto3.readthedocs.io/en/latest/) sdk 
 
 Click offers a simple CLI integration toolset that has a rich set of parsers and help functions to make the user's experience as simple as possible.
 
+### Top Level Help
+
 ![Top Level Help](doc/top_level_help.png)
 
-The top level help shows the various commands available. Since this is a hierarchical set of commands, there are a few different pathways to manage logging source and target CloudFormation scripts/deployments.  
+The top level help shows the various commands available. Since this is a hierarchical set of commands, there are a few different pathways to manage logging source and target CloudFormation scripts/deployments.
+
+### Target Generate Args and Options
 
 ![Target Generate Help](doc/target_generate_help.png)
 
 This image shows the help string when a user is attempting to generate the log target CloudFormation script. Note that details are pulled from the [docstring](https://www.python.org/dev/peps/pep-0257/) for the description of the command.
+
+### Source Generate Args and Options
+
+![Source Generate Help](doc/source_generate_help.png)
+
+This image is a screenshot of the parameters available when generating a CloudFormation template to point a given account's logs to the 'Target' account configured with the template generated above.
+
+### Prompt handling for CLI use
 
 ![CLI Option Handling](doc/cli_options.png)
 
@@ -48,6 +60,8 @@ The above shows the CLI prompting the user for values including multi-value inpu
 ```bash
 export CLI_PROMPT=TRUE
 ```
+
+Options and arguments can be passed in via prompt or in non-interactive mode depending on whether or not this enmvironment variable is set.
 
 # Process Flows
 

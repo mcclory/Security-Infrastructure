@@ -64,9 +64,9 @@ def initialize(account_id_list, bucket_name=None, log_file_prefix=None, aws_prof
 @target.command()
 @click.option('-r', '--region', 'region_list', multiple=True, prompt='Child Account Region List' if os.getenv('CLI_PROMPT') else None, help="list of accounts that are to be allowed tgit so publish logs into 'this' account (where the template is installed)")
 @click.option('-a', '--account', 'account_list', multiple=True, prompt='Child Account ID List' if os.getenv('CLI_PROMPT') else None, help="list of regions that are being used to deploy into - affects policies created to allow cross-account communciation")
-@click.option('--file', '-f', 'file_location', type=click.Path(), prompt="Save file path" if os.getenv('CLI_PROMPT'), else None, help="Specific path to save the generated template in. If not specifies, defaults to package data directory.")
+@click.option('--file', '-f', 'file_location', type=click.Path(), prompt="Save file path" if os.getenv('CLI_PROMPT') else None, help="Specific path to save the generated template in. If not specifies, defaults to package data directory.")
 @click.option('--dry-run', 'dry_run', is_flag=True, prompt='Dry Run' if os.getenv('CLI_PROMPT') else None, help="boolean indicates whether template should be printed to screen vs. being saved to file")
-def generate(account_list=None, region_list=None, file_location=None dry_run=False):
+def generate(account_list=None, region_list=None, file_location=None, dry_run=False):
     """CloudFormation template generator for use in creating the resources required to capture logs in a centrally managed account per UCSD standards."""
     if type(account_list) == tuple:
         account_list = list(account_list)
