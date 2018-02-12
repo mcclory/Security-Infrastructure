@@ -24,7 +24,8 @@ def source():
 
 @source.command('generate')
 @click.option('--dry-run', 'dry_run', is_flag=True, prompt='Dry Run' if os.getenv('CLI_PROMPT') else None, help="boolean indicates whether template should be printed to screen vs. being saved to file")
-def generate(dry_run):
+@click.option('--file', '-f', 'file_location', type=click.Path(), prompt="Save file path" if os.getenv('CLI_PROMPT'), else None, help="Specific path to save the generated template in. If not specifies, defaults to package data directory.")
+def generate(dry_run, file_location=None):
     """CloudFormation template generator to apply to all accounts which configures log sources to publish to the centralized log target(s) specified"""
     t = Template()
 
@@ -116,6 +117,6 @@ def generate(dry_run):
     if dry_run:
         print(t.to_json())
     else:
-        template_name = 'log_sources.json'
-        with open (os.path.join(log_aggregation_cf, template_name), 'w') as f:
+        save_path = file_location if file_location else os.path.join(log_aggregation_cf, 'log_sources.json')
+        with open (save_path, 'w') as f:
             f.write(t.to_json())
