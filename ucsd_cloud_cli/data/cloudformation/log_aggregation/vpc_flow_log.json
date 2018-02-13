@@ -1,0 +1,47 @@
+{
+    "Parameters": {
+        "DeliveryLogsPermissionArn": {
+            "Description": "The Amazon Resource Name (ARN) of an AWS Identity and Access Management (IAM) role that permits Amazon EC2 to publish flow logs to a CloudWatch Logs log group in your account. - log_sources output name: VPCFlowLogDeliveryLogsPermissionArn",
+            "Type": "String"
+        },
+        "LogGroupName": {
+            "Default": "SecurityLogShippingGroup",
+            "Description": "The name of a new or existing CloudWatch Logs log group where Amazon EC2 publishes your flow logs. - Provided by the outputs of the child account-level central configuration - log_sources output name: CloudWatchLogGroupName.",
+            "Type": "String"
+        },
+        "TrafficType": {
+            "AllowedValues": [
+                "ACCEPT",
+                "REJECT",
+                "ALL"
+            ],
+            "Default": "ALL",
+            "Description": "The type of traffic to log.",
+            "Type": "String"
+        },
+        "VPCId": {
+            "Description": "The ID of an existing VPC within the region *this* CloudFormation template is being deployed within that should have its corresponding VPC Flow Logs transmitted to the Log Group identified by LogGroupName.",
+            "Type": "AWS::EC2::VPC::Id"
+        }
+    },
+    "Resources": {
+        "VPCFlowLog": {
+            "Properties": {
+                "DeliverLogsPermissionArn": {
+                    "Ref": "DeliveryLogsPermissionArn"
+                },
+                "LogGroupName": {
+                    "Ref": "LogGroupName"
+                },
+                "ResourceId": {
+                    "Ref": "VPCId"
+                },
+                "ResourceType": "VPC",
+                "TrafficType": {
+                    "Ref": "TrafficType"
+                }
+            },
+            "Type": "AWS::EC2::FlowLog"
+        }
+    }
+}
