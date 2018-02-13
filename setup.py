@@ -33,7 +33,7 @@ setup(
     version=VERSION,
     description="UCSD Cloud CLI Wrapper",
     author_email="dev@introspectdata.com",
-    url="https://introspectdata.com/IntrospectData/ucsd-cloud-cli",
+    url="https://github.com/IntrospectData/ucsd-cloud-cli",
     keywords=["Click", "UCSD Cloud CLI"],
     install_requires=requirements,
     packages=find_packages(),
