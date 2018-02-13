@@ -9,11 +9,26 @@
                 ]
             }
         },
-        "CloudWatchLogGroup": {
+        "CloudWatchLogGroupARN": {
             "Description": "ARN of the CloudWatch Log Group created to flow logs to the centralized logging stream.",
             "Value": {
                 "Fn::GetAtt": [
                     "SecurityLogShippingGroup",
+                    "Arn"
+                ]
+            }
+        },
+        "CloudWatchLogGroupName": {
+            "Description": "Name of the CloudWatch Log Group created to flow logs to the centralized logging stream.",
+            "Value": {
+                "Ref": "SecurityLogShippingGroup"
+            }
+        },
+        "VPCFlowLogDeliveryLogsPermissionArn": {
+            "Description": "ARN of the IAM role for VPC Flow Logs to use within this account to ship VPC flow logs through.",
+            "Value": {
+                "Fn::GetAtt": [
+                    "VPCFlowLogToCWLIAMRole",
                     "Arn"
                 ]
             }
@@ -92,6 +107,7 @@
         },
         "SecurityLogShippingGroup": {
             "Properties": {
+                "LogGroupName": "SecurityLogShippingGroup",
                 "RetentionInDays": {
                     "Ref": "LogGroupRetentionInDays"
                 }
@@ -134,6 +150,52 @@
                 }
             },
             "Type": "AWS::CloudTrail::Trail"
+        },
+        "VPCFlowLogToCWLIAMRole": {
+            "Properties": {
+                "AssumeRolePolicyDocument": {
+                    "Statement": [
+                        {
+                            "Action": [
+                                "sts:AssumeRole"
+                            ],
+                            "Effect": "Allow",
+                            "Principal": {
+                                "Service": "vpc-flow-logs.amazonaws.com"
+                            }
+                        }
+                    ]
+                }
+            },
+            "Type": "AWS::IAM::Role"
+        },
+        "VPCFlowLogToCWLPolicy": {
+            "Properties": {
+                "PolicyDocument": {
+                    "Statement": [
+                        {
+                            "Action": [
+                                "logs:CreateLogGroup",
+                                "logs:CreateLogStream",
+                                "logs:PutLogEvents",
+                                "logs:DescribeLogGroups",
+                                "logs:DescribeLogStreams"
+                            ],
+                            "Effect": "Allow",
+                            "Resource": [
+                                "*"
+                            ]
+                        }
+                    ]
+                },
+                "PolicyName": "vpcflowlogtocwlpolicy20180213",
+                "Roles": [
+                    {
+                        "Ref": "VPCFlowLogToCWLIAMRole"
+                    }
+                ]
+            },
+            "Type": "AWS::IAM::Policy"
         }
     }
 }

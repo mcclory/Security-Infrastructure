@@ -11,6 +11,10 @@ import troposphere.cloudtrail as ct
 import troposphere.logs as cwl
 import troposphere.ec2 as ec2
 
+from awacs.aws import Allow, Statement, Principal, Policy
+from awacs.logs import CreateLogGroup, CreateLogStream, PutLogEvents, DescribeLogGroups, DescribeLogStreams
+from awacs.iam import PassRole as IAMPassRole
+from awacs.sts import AssumeRole
 
 log_aggregation_cf = os.path.join(cf_data_dir, 'log_aggregation')
 SUPPORTED_SERVICES = ['cloudtrail', 'cloudwatch', 'vpc_flow_logs']
@@ -102,6 +106,21 @@ def generate(dry_run, file_location=None):
                                       LogGroupName=Ref(cwl_group),
                                       FilterPattern="{$.userIdentity.type = Root}"))
 
+    # Create IAM role to allow VPC Flow Logs within this account to push data to CloudWatch Logs per https://docs.aws.amazon.com/AmazonVPC/latest/UserGuide/flow-logs.html#flow-logs-iam
+    vpc_flow_log_iam_role = t.add_resource(iam.Role('VPCFlowLogToCWLIAMRole',
+                                           AssumeRolePolicyDocument=Policy(
+                                               Statement=[Statement(Effect=Allow, Action=[AssumeRole], Principal=Principal("Service", "vpc-flow-logs.amazonaws.com"))])))
+
+    vpc_flow_log_policies = t.add_resource(iam.PolicyType('VPCFlowLogToCWLPolicy',
+                                           PolicyName='vpcflowlogtocwlpolicy20180213',
+                                           Roles=[Ref(vpc_flow_log_iam_role)],
+                                           PolicyDocument=Policy(
+                                                Statement=[
+                                                    Statement(
+                                                        Effect=Allow,
+                                                        Action=[CreateLogGroup, CreateLogStream, PutLogEvents, DescribeLogGroups, DescribeLogStreams],
+                                                        Resource=["*"])])))
+
         # outputs
     t.add_output(Output('CloudWatchLogGroupName',
                  Value=Ref(cwl_group),
@@ -110,6 +129,11 @@ def generate(dry_run, file_location=None):
     t.add_output(Output('CloudWatchLogGroupARN',
                  Value=GetAtt(cwl_group, "Arn"),
                  Description="ARN of the CloudWatch Log Group created to flow logs to the centralized logging stream."))
+
+    t.add_output(Output('VPCFlowLogDeliveryLogsPermissionArn',
+                 Value=GetAtt(vpc_flow_log_iam_role, "Arn"),
+                 Description="ARN of the IAM role for VPC Flow Logs to use within this account to ship VPC flow logs through."))
+
 
     #
     # CloudTrail setup - ship to S3 in 'central account' as well as cloudtrail logs if it'll let us :)

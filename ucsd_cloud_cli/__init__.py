@@ -1,7 +1,6 @@
-import click
 from .logs import logs
 from .sec import sec
-
+import click
 import os
 
 data_dir = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'data')

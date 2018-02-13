@@ -4,7 +4,7 @@ import pip
 
 from pip.req import parse_requirements
 
-from ucsd_cloud_cli import VERSION
+from ucsd_cloud_cli.common import VERSION
 
 NAME = "ucsd_cloud_cli"
 

@@ -1,4 +1,4 @@
-from . import cli
+from ucsd_cloud_cli import cli
 
 if __name__ == '__main__':
     cli()
