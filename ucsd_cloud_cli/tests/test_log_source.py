@@ -11,6 +11,7 @@ class TestLogSource(unittest.TestCase):
     def setUp(self):
         self.runner = CliRunner()
 
+
     def test_generate_valid_json(self):
         result = self.runner.invoke(cli, ['source', 'generate', '--dry-run'])
         assert result.exit_code == 0
@@ -21,6 +22,7 @@ class TestLogSource(unittest.TestCase):
         result = self.runner.invoke(cli, ['source', 'generate', '--help'])
         for arg_name in ['--dry-run', '--help']:
             assert arg_name in result.output
+
 
     def test_cfn_structure(self):
         result = self.runner.invoke(cli, ['source', 'generate', '--dry-run'])

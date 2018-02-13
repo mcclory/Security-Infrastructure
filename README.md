@@ -10,10 +10,18 @@ To work on this toolset, you will need several basic requirements installed:
 * [virtualenv](https://pypi.python.org/pypi/virtualenv)
 * [virtualenvwrapper](https://virtualenvwrapper.readthedocs.io/en/latest/)
 
-Assuming you're working on a mac and have [homebrew](https://brew.sh) installed, the following will install these prerequisites:
+Assuming you're working on a mac and have [homebrew](https://brew.sh) installed, the following will install these prerequisites on an OSX machine:
 
 ```bash
 brew install python3
+pip3 install virtualenv
+pip3 install virtualenvwrapper
+```
+
+For Ubuntu or other Debian based machines, the basic dependencies are very similar:
+
+```bash
+sudo apt-get install -y python3
 pip3 install virtualenv
 pip3 install virtualenvwrapper
 ```
@@ -25,13 +33,45 @@ VIRTUALENVWRAPPER_PYTHON=/usr/local/bin/python3
 source /usr/local/bin/virtualenvwrapper.sh
 ```
 
-## Dependencies and Packages
+## Installation
 
-This toolset leverages the [boto3](https://boto3.readthedocs.io/en/latest/) sdk when interacting with Amazon Web Services' API's and [click](http://click.pocoo.org/5/) to handle the command-line experience and interface. Additionally, [troposphere](https://github.com/cloudtools/troposphere) is used to compose CloudFormation templates to avoid string-based JSON errors and other easy to make mistakes.
+Installation of this project from the command line is simple:
+
+* Download and (if applicable) unarchive this project to a directory of your choosing
+* From the command line, navigate to the directory where the `setup.py` script is (should be the directory that was created via `git clone` or when the downloaded zip file was unarchived)
+* Before you install, create a virtual environment for this project: `mkvirtualenv -p <path_to_python3> ucsd`
+  * if/when you exit and return to the commandline, re-enable the `ucsd` virtualenv with the following command: `workon ucsd`
+* Run the `setup_tools` install process with the following command: `python setup.py install`
+* From here, you should have a `ucsd_cloud_cli` command that runs the code within this project installed to your python packages directory
+
+
+## Using the Docker Image
+
+If you'd prefer to use the Docker image and have Docker installed locally, once you've downloaded (`git clone` or otherwise) this project, you can build with the following command:
+
+```bash
+docker build -t ucsd_cloud_cli .
+```
+
+This will build an `alpine` and `python3.6`-based docker container named `ucsd_cloud_cli` locally. Running the CLI through this interface is straightforward:
+
+```bash
+docker run -v $(HOME)/.aws:/root/.aws ucsd_cloud_cli <command> <arguments> <options>
+```
+
+This is functionally equivalent to running the above command `ucsd_cloud_cli <command> <arguments> <options>` with the benefit of running it in an consistent Docker container. Note that we also assume that you've set up a local credentials file and we simply map it in via a volume mount to the container. 
+
+## Installed Dependencies
+
+This toolset leverages the following core dependencies:
+* [boto3](https://boto3.readthedocs.io/en/latest/) sdk - AWS programmatic interactions
+* [click](http://click.pocoo.org/5/) - handles the command-line experience and interface
+* [troposphere](https://github.com/cloudtools/troposphere) - used to compose CloudFormation templates to avoid string-based JSON errors and other easy to make mistakes.
+  * this is truly a time saver and avoids the frustration of building large CloudFormation by offering programmatic syntax and structural validation checks
 
 ## Click CLI
 
-Click offers a simple CLI integration toolset that has a rich set of parsers and help functions to make the user's experience as simple as possible.
+Click offers a simple CLI integration toolset that has a rich set of parsers and help functions to make the user's experience as simple as possible. Note that the screen shots below were run on a development machine. When installed, rather than typing `python -m ucsd_cloud_cli` from the same directory of the project, the `ucsd_cloud_cli` command will be available whenever the proper virtualenv is enabled (in our case above, named `ucsd`)
 
 ### Top Level Help
 
