@@ -39,6 +39,7 @@ def flow_log():
                                     Description="The Amazon Resource Name (ARN) of an AWS Identity and Access Management (IAM) role that permits Amazon EC2 to publish flow logs to a CloudWatch Logs log group in your account. - Provided by the outputs of the child account-level central configuration."))
 
     # This parameter should be mapped to the 'CloudWatchLogGroupName' output in the template created by the generate() method below
+    # we've abstracted the name to a variable and set the default here consistent with what the parent CFn template is setting in the child account configuration
     log_group_name = t.add_parameter(Parameter('LogGroupName',
                                     Type="String",
                                     Default=security_log_shipping_group_name,
