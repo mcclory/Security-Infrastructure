@@ -76,18 +76,18 @@ def generate(account_list=None, region_list=None, file_location=None, dry_run=Fa
 
     # Create Kinesis and IAM Roles
     log_stream_shard_count = t.add_parameter(Parameter("LogStreamShardCount",
-        Description="Number of shards to create within the AWS Kinesis stream created to handle CloudWatch Logs.",
-        Type="Number",
-        MinValue=1,
-        MaxValue=64,
-        Default=1))
+                                             Description="Number of shards to create within the AWS Kinesis stream created to handle CloudWatch Logs.",
+                                             Type="Number",
+                                             MinValue=1,
+                                             MaxValue=64,
+                                             Default=1))
 
     log_stream_retention_period = t.add_parameter(Parameter("LogStreamRetentionPeriod",
-        Description = "Number of hours to retain logs in the Kinesis stream.",
-        Type="Number",
-        MinValue=24,
-        MaxValue=120,
-        Default=24))
+                                                  Description = "Number of hours to retain logs in the Kinesis stream.",
+                                                  Type="Number",
+                                                  MinValue=24,
+                                                  MaxValue=120,
+                                                  Default=24))
 
     log_stream = t.add_resource(k.Stream("LogStream",
         RetentionPeriodHours=Ref(log_stream_retention_period),
@@ -113,43 +113,43 @@ def generate(account_list=None, region_list=None, file_location=None, dry_run=Fa
 
     # Generate Bucket with Lifecycle Policies
     bucket_name = t.add_parameter(Parameter("BucketName",
-        Description="Name to assign to the central logging retention bucket",
-        Type="String",
-        AllowedPattern="([a-z]|[0-9])+",
-        MinLength=2,
-        MaxLength=64))
+                                  Description="Name to assign to the central logging retention bucket",
+                                  Type="String",
+                                  AllowedPattern="([a-z]|[0-9])+",
+                                  MinLength=2,
+                                  MaxLength=64))
 
     glacier_migration_days = t.add_parameter(Parameter("LogMoveToGlacierInDays",
-        Description="Number of days until logs are expired from S3 and transitioned to Glacier",
-        Type="Number",
-        Default=365))
+                                             Description="Number of days until logs are expired from S3 and transitioned to Glacier",
+                                             Type="Number",
+                                             Default=365))
 
     glacier_deletion_days = t.add_parameter(Parameter("LogDeleteFromGlacierInDays",
-        Description="Number of days until logs are expired from Glacier and deleted",
-        Type="Number",
-        Default=365*7))
+                                            Description="Number of days until logs are expired from Glacier and deleted",
+                                            Type="Number",
+                                            Default=365*7))
 
     bucket = t.add_resource(s3.Bucket("LogDeliveryBucket",
-        DependsOn=[log_stream.name],
-        BucketName=Ref(bucket_name),
-        AccessControl="LogDeliveryWrite",
-        LifecycleConfiguration=s3.LifecycleConfiguration(Rules=[
-            s3.LifecycleRule(
-                Id="S3ToGlacierTransition",
-                Status="Enabled",
-                ExpirationInDays=Ref(glacier_deletion_days),
-                Transition=s3.LifecycleRuleTransition(
-                    StorageClass="Glacier",
-                    TransitionInDays=Ref(glacier_migration_days)))])))
+                            DependsOn=[log_stream.name],
+                            BucketName=Ref(bucket_name),
+                            AccessControl="LogDeliveryWrite",
+                            LifecycleConfiguration=s3.LifecycleConfiguration(Rules=[
+                                s3.LifecycleRule(
+                                    Id="S3ToGlacierTransition",
+                                    Status="Enabled",
+                                    ExpirationInDays=Ref(glacier_deletion_days),
+                                    Transition=s3.LifecycleRuleTransition(
+                                        StorageClass="Glacier",
+                                        TransitionInDays=Ref(glacier_migration_days)))])))
 
     # Log destination setup
     log_destination_name = "LogIngestDestination"
     log_destination = t.add_resource(cwl.Destination(log_destination_name,
-        DestinationName="LogIngestDestination",
-        DestinationPolicy=_generate_log_destination_policy(log_destination_name, account_list),
-        TargetArn=GetAtt(log_stream, "Arn"),
-        RoleArn=GetAtt(log_ingest_iam_role, "Arn"),
-        DependsOn=[log_ingest_iam_policy.name, bucket.name]))
+                                     DestinationName="LogIngestDestination",
+                                     DestinationPolicy=_generate_log_destination_policy(log_destination_name, account_list),
+                                     TargetArn=GetAtt(log_stream, "Arn"),
+                                     RoleArn=GetAtt(log_ingest_iam_role, "Arn"),
+                                     DependsOn=[log_ingest_iam_policy.name, bucket.name]))
 
     t.add_output(Output("StreamArn",
                  Value=GetAtt(log_stream, "Arn"),
@@ -181,6 +181,7 @@ def _generate_log_destination_policy(log_destination_name, account_list=[]):
         policy_doc.append(Join(':', [Region, AccountId]))
         policy_doc.append(':destination:testDestination"}')
         policy_doc.append(',')
+
     del policy_doc[-1]
     policy_doc.append(']}')
     return Join("", policy_doc)
