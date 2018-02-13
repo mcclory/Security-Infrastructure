@@ -9,10 +9,13 @@ from troposphere import GetAtt, Ref, Join, Template, AccountId, Region, Output, 
 import troposphere.iam as iam
 import troposphere.cloudtrail as ct
 import troposphere.logs as cwl
+import troposphere.ec2 as ec2
 
 
 log_aggregation_cf = os.path.join(cf_data_dir, 'log_aggregation')
 SUPPORTED_SERVICES = ['cloudtrail', 'cloudwatch', 'vpc_flow_logs']
+
+security_log_shipping_group_name = "SecurityLogShippingGroup"
 
 @click.group()
 def cli():
@@ -20,7 +23,43 @@ def cli():
 
 @cli.group()
 def source():
+    """Command group pertaining to the management of CloudFormation templates designed to configure AWS accounts to ship logs to a target AWS account configured to aggregate infrastructure-level logs."""
     pass
+
+
+@source.command()
+@click.option('--dry-run', 'dry_run', is_flag=True, prompt='Dry Run' if os.getenv('CLI_PROMPT') else None, help="boolean indicates whether template should be printed to screen vs. being saved to file")
+@click.option('--file', '-f', 'file_location', type=click.Path(), prompt="Save file path" if os.getenv('CLI_PROMPT') else None, help="Specific path to save the generated template in. If not specifies, defaults to package data directory.")
+def flow_log():
+    """Method generates a mini-template for use in configuring VPC Flow Log configuration within an account. This template should apply to all VPCs in all regions for any account that's configured as a log 'sender' and aggregates logs via the previously created CloudWatch Logs group (to be supplied as a Parameter)."""
+
+    t = Template()
+    delivery_logs_permission_arn = t.add_parameter(Parameter('DeliveryLogsPermissionArn',
+                                    Type="String",
+                                    Description="The Amazon Resource Name (ARN) of an AWS Identity and Access Management (IAM) role that permits Amazon EC2 to publish flow logs to a CloudWatch Logs log group in your account. - Provided by the outputs of the child account-level central configuration."))
+
+    # This parameter should be mapped to the 'CloudWatchLogGroupName' output in the template created by the generate() method below
+    log_group_name = t.add_parameter(Parameter('LogGroupName',
+                                    Type="String",
+                                    Default=security_log_shipping_group_name,
+                                    Description="The name of a new or existing CloudWatch Logs log group where Amazon EC2 publishes your flow logs. - Provided by the outputs of the child account-level central configuration - output name: CloudWatchLogGroupName."))
+
+    vpc_id = t.add_parameter(Parameter('VPCId',
+                             Type="AWS::EC2::VPC::Id",
+                             Description="The ID of an existing VPC within the region *this* CloudFormation template is being deployed within that should have its corresponding VPC Flow Logs transmitted to the Log Group identified by LogGroupName."))
+
+    traffic_type = t.add_parameter(Parameter('TrafficType',
+                                    Type="String",
+                                    Default="ALL",
+                                    AllowedValues=["ACCEPT", "REJECT", "ALL"],
+                                    Description="The type of traffic to log."))
+
+    vpc_flow_log = t.add_resource(ec2.FlowLog('vpc_flow_log',
+                                  ResourceId=Ref(vpc_id),
+                                  DeliveryLogsPermissionArn=Ref(delivery_logs_permission_arn),
+                                  ResourceType="VPC",
+                                  LogGroupName=Ref(log_group_name),
+                                  TrafficType=Ref(traffic_type)))
 
 @source.command('generate')
 @click.option('--dry-run', 'dry_run', is_flag=True, prompt='Dry Run' if os.getenv('CLI_PROMPT') else None, help="boolean indicates whether template should be printed to screen vs. being saved to file")
@@ -53,6 +92,7 @@ def generate(dry_run, file_location=None):
         Default=1))
 
     cwl_group = t.add_resource(cwl.LogGroup('SecurityLogShippingGroup',
+                               LogGroupName=security_log_shipping_group_name,
                                RetentionInDays=Ref(cwl_group_retention)))
 
     cwl_subscription = t.add_resource(cwl.SubscriptionFilter('SecurityLogShippingFilter',
@@ -62,9 +102,14 @@ def generate(dry_run, file_location=None):
                                       FilterPattern="{$.userIdentity.type = Root}"))
 
         # outputs
-    t.add_output(Output('CloudWatchLogGroup',
+    t.add_output(Output('CloudWatchLogGroupName',
+                 Value=Ref(cwl_group),
+                 Description="Name of the CloudWatch Log Group created to flow logs to the centralized logging stream."))
+
+    t.add_output(Output('CloudWatchLogGroupARN',
                  Value=GetAtt(cwl_group, "Arn"),
                  Description="ARN of the CloudWatch Log Group created to flow logs to the centralized logging stream."))
+
 
     #
     # CloudTrail setup - ship to S3 in 'central account' as well as cloudtrail logs if it'll let us :)
@@ -113,6 +158,7 @@ def generate(dry_run, file_location=None):
     t.add_output(Output('CloudTrailARN',
                         Description="ARN of the CloudTrail Trail configured for this log source deployment.",
                         Value=GetAtt(ct_trail, "Arn")))
+
 
     if dry_run:
         print(t.to_json())

@@ -27,6 +27,7 @@ def cli():
 
 @cli.group()
 def target():
+    """Command group pertaining to the management of CloudFormation templates designed to configure the AWS account where infrastructure-level logging is aggregated to."""
     pass
 
 @target.command()
@@ -52,7 +53,6 @@ def initialize(account_id_list, bucket_name=None, log_file_prefix=None, aws_prof
     else:
         raise KeyError('CloudFormation template does not have the proper "Resources" section. Please check the %s template and try again' % template_name)
 
-    cloudformation_template = yaml.dump(cf_data)
 
     if dry_run:
         print(cloudformation_template)
