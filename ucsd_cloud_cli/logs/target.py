@@ -111,7 +111,6 @@ def generate(account_list=None, region_list=None, file_location=None, dry_run=Fa
                     Action=[IAMPassRole],
                     Resource=[GetAtt(log_ingest_iam_role, "Arn")])])))
 
-
     # Generate Bucket with Lifecycle Policies
     bucket_name = t.add_parameter(Parameter("BucketName",
         Description="Name to assign to the central logging retention bucket",
@@ -176,12 +175,12 @@ def _generate_log_destination_policy(log_destination_name, account_list=[]):
 
     policy_doc.append('{"Version" : "2012-10-17","Statement" : [')
     for source_account_id in account_list:
-      policy_doc.append('{"Sid" : "","Effect" : "Allow","Principal" : {"AWS" : "')
-      policy_doc.append(source_account_id)
-      policy_doc.append('"},"Action" : "logs:PutSubscriptionFilter","Resource" : "arn:aws:logs:')
-      policy_doc.append(Join(':', [Region, AccountId]))
-      policy_doc.append(':destination:testDestination"}')
-      policy_doc.append(',')
+        policy_doc.append('{"Sid" : "","Effect" : "Allow","Principal" : {"AWS" : "')
+        policy_doc.append(source_account_id)
+        policy_doc.append('"},"Action" : "logs:PutSubscriptionFilter","Resource" : "arn:aws:logs:')
+        policy_doc.append(Join(':', [Region, AccountId]))
+        policy_doc.append(':destination:testDestination"}')
+        policy_doc.append(',')
     del policy_doc[-1]
     policy_doc.append(']}')
     return Join("", policy_doc)

@@ -50,10 +50,10 @@ def flow_log():
                              Description="The ID of an existing VPC within the region *this* CloudFormation template is being deployed within that should have its corresponding VPC Flow Logs transmitted to the Log Group identified by LogGroupName."))
 
     traffic_type = t.add_parameter(Parameter('TrafficType',
-                                    Type="String",
-                                    Default="ALL",
-                                    AllowedValues=["ACCEPT", "REJECT", "ALL"],
-                                    Description="The type of traffic to log."))
+                                   Type="String",
+                                   Default="ALL",
+                                   AllowedValues=["ACCEPT", "REJECT", "ALL"],
+                                   Description="The type of traffic to log."))
 
     vpc_flow_log = t.add_resource(ec2.FlowLog('vpc_flow_log',
                                   ResourceId=Ref(vpc_id),
@@ -86,11 +86,11 @@ def generate(dry_run, file_location=None):
 
         # resources
     cwl_group_retention = t.add_parameter(Parameter("LogGroupRetentionInDays",
-        Type="Number",
-        Description="Number of days to retain logs in the CloudWatch Log Group",
-        MinValue=1,
-        MaxValue=14,
-        Default=1))
+                                          Type="Number",
+                                          Description="Number of days to retain logs in the CloudWatch Log Group",
+                                          MinValue=1,
+                                          MaxValue=14,
+                                          Default=1))
 
     cwl_group = t.add_resource(cwl.LogGroup('SecurityLogShippingGroup',
                                LogGroupName=security_log_shipping_group_name,
@@ -111,7 +111,6 @@ def generate(dry_run, file_location=None):
                  Value=GetAtt(cwl_group, "Arn"),
                  Description="ARN of the CloudWatch Log Group created to flow logs to the centralized logging stream."))
 
-
     #
     # CloudTrail setup - ship to S3 in 'central account' as well as cloudtrail logs if it'll let us :)
     #
@@ -128,6 +127,7 @@ def generate(dry_run, file_location=None):
                                         Default="true",
                                         AllowedValues=["true", "false"],
                                         Description="Flag indicating that CloudTrail is configured to capture global service events."))
+
     ct_multi_region = t.add_parameter(Parameter('CloudTrailMultiRegion',
                                       Type="String",
                                       Default="true",
@@ -139,9 +139,9 @@ def generate(dry_run, file_location=None):
                                    Description='Name of the S3 bucket to ship logs to in the centralized aggregation account.'))
 
     ct_s3_key_prefix = t.add_parameter(Parameter('CloudTrailKeyPrefix',
-                                        Type='String',
-                                        Default='',
-                                        Description='Key name prefix for logs being sent to S3'))
+                                       Type='String',
+                                       Default='',
+                                       Description='Key name prefix for logs being sent to S3'))
 
         # resources
     ct_trail = t.add_resource(ct.Trail(

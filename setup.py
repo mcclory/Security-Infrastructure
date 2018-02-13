@@ -32,7 +32,7 @@ setup(
     name=NAME,
     version=VERSION,
     description="UCSD Cloud CLI Wrapper",
-    author_email="pmdev@introspectdata.com",
+    author_email="dev@introspectdata.com",
     url="https://introspectdata.com/IntrospectData/ucsd-cloud-cli",
     keywords=["Click", "UCSD Cloud CLI"],
     install_requires=requirements,
@@ -51,6 +51,7 @@ setup(
     ],
     entry_points='''
         [console_scripts]
+        ucsd_cloud_cli=ucsd_cloud_cli:__main__
         ccli=ucsd_cloud_cli:__main__
     ''',
     tests_require=test_requirements
