@@ -73,6 +73,8 @@ def generate(account_list=None, region_list=None, file_location=None, dry_run=Fa
 
     region_list = region_list if region_list else ['us-west-1', 'us-west-2', 'us-east-1', 'us-east-2']
     t = Template()
+    t.add_version("2010-09-09")
+    t.add_description("UCSD Log Target AWS CloudFormation Template - this CFn template configures a given account to receive logs from other accounts so as to aggregate and then optionally forward those logs on to the UCSD Splunk installation.")
 
     # Create Kinesis and IAM Roles
     log_stream_shard_count = t.add_parameter(Parameter("LogStreamShardCount",
