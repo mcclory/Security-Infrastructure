@@ -34,20 +34,23 @@ def source():
 @source.command()
 @click.option('--dry-run', 'dry_run', is_flag=True, prompt='Dry Run' if os.getenv('CLI_PROMPT') else None, help="boolean indicates whether template should be printed to screen vs. being saved to file")
 @click.option('--file', '-f', 'file_location', type=click.Path(), prompt="Save file path" if os.getenv('CLI_PROMPT') else None, help="Specific path to save the generated template in. If not specifies, defaults to package data directory.")
-def flow_log():
+def flow_log(dry_run, file_location):
     """Method generates a mini-template for use in configuring VPC Flow Log configuration within an account. This template should apply to all VPCs in all regions for any account that's configured as a log 'sender' and aggregates logs via the previously created CloudWatch Logs group (to be supplied as a Parameter)."""
 
     t = Template()
+    t.add_version("2010-09-09")
+    t.add_description("UCSD VPC Flow Log AWS CloudFormation Template - on a per-VPC basis within an account that has been configured with the 'UCSD Log Source AWS CloudFormation Template', this template will ensure VPC Flow logs are forwarded to to the preconfigured Log Groups for aggregation to the central logging setup.")
+
     delivery_logs_permission_arn = t.add_parameter(Parameter('DeliveryLogsPermissionArn',
                                     Type="String",
-                                    Description="The Amazon Resource Name (ARN) of an AWS Identity and Access Management (IAM) role that permits Amazon EC2 to publish flow logs to a CloudWatch Logs log group in your account. - Provided by the outputs of the child account-level central configuration."))
+                                    Description="The Amazon Resource Name (ARN) of an AWS Identity and Access Management (IAM) role that permits Amazon EC2 to publish flow logs to a CloudWatch Logs log group in your account. - log_sources output name: VPCFlowLogDeliveryLogsPermissionArn"))
 
     # This parameter should be mapped to the 'CloudWatchLogGroupName' output in the template created by the generate() method below
     # we've abstracted the name to a variable and set the default here consistent with what the parent CFn template is setting in the child account configuration
     log_group_name = t.add_parameter(Parameter('LogGroupName',
                                     Type="String",
                                     Default=security_log_shipping_group_name,
-                                    Description="The name of a new or existing CloudWatch Logs log group where Amazon EC2 publishes your flow logs. - Provided by the outputs of the child account-level central configuration - output name: CloudWatchLogGroupName."))
+                                    Description="The name of a new or existing CloudWatch Logs log group where Amazon EC2 publishes your flow logs. - Provided by the outputs of the child account-level central configuration - log_sources output name: CloudWatchLogGroupName."))
 
     vpc_id = t.add_parameter(Parameter('VPCId',
                              Type="AWS::EC2::VPC::Id",
@@ -59,12 +62,19 @@ def flow_log():
                                    AllowedValues=["ACCEPT", "REJECT", "ALL"],
                                    Description="The type of traffic to log."))
 
-    vpc_flow_log = t.add_resource(ec2.FlowLog('vpc_flow_log',
+    vpc_flow_log = t.add_resource(ec2.FlowLog('VPCFlowLog',
                                   ResourceId=Ref(vpc_id),
-                                  DeliveryLogsPermissionArn=Ref(delivery_logs_permission_arn),
+                                  DeliverLogsPermissionArn=Ref(delivery_logs_permission_arn),
                                   ResourceType="VPC",
                                   LogGroupName=Ref(log_group_name),
                                   TrafficType=Ref(traffic_type)))
+
+    if dry_run:
+        print(t.to_json())
+    else:
+        save_path = file_location if file_location else os.path.join(log_aggregation_cf, 'vpc_flow_log.json')
+        with open (save_path, 'w') as f:
+            f.write(t.to_json())
 
 @source.command('generate')
 @click.option('--dry-run', 'dry_run', is_flag=True, prompt='Dry Run' if os.getenv('CLI_PROMPT') else None, help="boolean indicates whether template should be printed to screen vs. being saved to file")
@@ -72,6 +82,8 @@ def flow_log():
 def generate(dry_run, file_location=None):
     """CloudFormation template generator to apply to all accounts which configures log sources to publish to the centralized log target(s) specified"""
     t = Template()
+    t.add_version("2010-09-09")
+    t.add_description("UCSD Log Source AWS CloudFormation Template - this template is meant to be applied to pre-approved accounts and configures CloudWatch Logs to forward to the UCSD log aggregation process.")
 
     #
     # CloudWatch Logs setup - Set up shipping to 'centralized' account
