@@ -4,8 +4,9 @@ import pip
 
 from pip.req import parse_requirements
 
+from ucsd_cloud_cli import VERSION
+
 NAME = "ucsd_cloud_cli"
-VERSION = "0.1.0"
 
 # To install the library, run the following
 #
@@ -45,6 +46,7 @@ setup(
         'License :: Other/Proprietary License',
         'Natural Language :: English',
         'Programming Language :: Python :: 3.4',
+        'Programming Language :: Python :: 3.6',
         'Programming Language :: Python :: 3.5'
     ],
     entry_points='''
