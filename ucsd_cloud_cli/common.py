@@ -1,5 +1,6 @@
 from boto3
-
+import hashlib
+from . import VERSION
 
 def _get_session(profile_name):
     """Centralized logic for handling getting a boto3 session for a given profile"""
@@ -27,3 +28,12 @@ def get_profile_collection(security_account_profile_name):
         else:
             ret_val['child_accounts'].append(profile)
     return ret_val
+
+
+def serialize_template(template, description):
+    """Commmon method for serializing a given template with the generator version, git sha and template md5 hash to validate consistency in debug scenarios."""
+    template_hash = template.to_json()
+    git_sha = ''
+    description += ' |' + VERSION + '|' + template_hash + '|' + git_sha
+    template.description = description
+    return template
