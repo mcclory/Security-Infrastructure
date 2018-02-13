@@ -1,6 +1,6 @@
 # UCSD-Cloud-Cli 0.1.0
 
-This toolset is designed to enable command-line-level access to common functions related to the security workflow(s) defined within this readme document for the UCSD team to use when configuring their Amazon Web Services environment(s).
+This tool set is designed to enable command-line-level access to common functions related to the security workflow(s) defined within this readme document for the UCSD team to use when configuring their Amazon Web Services environment(s).
 
 ## Development Environment Prerequisites
 
@@ -37,10 +37,10 @@ source /usr/local/bin/virtualenvwrapper.sh
 
 Installation of this project from the command line is simple:
 
-* Download and (if applicable) unarchive this project to a directory of your choosing
+* Download and (if applicable) un-archive this project to a directory of your choosing
 * From the command line, navigate to the directory where the `setup.py` script is (should be the directory that was created via `git clone` or when the downloaded zip file was unarchived)
 * Before you install, create a virtual environment for this project: `mkvirtualenv -p <path_to_python3> ucsd`
-  * if/when you exit and return to the commandline, re-enable the `ucsd` virtualenv with the following command: `workon ucsd`
+  * if/when you exit and return to the command line, re-enable the `ucsd` virtualenv with the following command: `workon ucsd`
 * Run the `setuptools` install process with the following command: `python setup.py install`
 * From here, you should have a `ucsd_cloud_cli` command that runs the code within this project installed to your python packages directory
 
@@ -53,7 +53,7 @@ If you'd prefer to use the Docker image and have Docker installed locally, once 
 docker build -t ucsd_cloud_cli .
 ```
 
-This will build an `alpine` and `python3.6`-based docker container named `ucsd_cloud_cli` locally. Running the CLI through this interface is straightforward:
+This will build an `alpine` and `python3.6`-based docker container named `ucsd_cloud_cli` locally. Running the Command Line Interface (CLI) through this interface is straightforward:
 
 ```bash
 docker run -v $(HOME)/.aws:/root/.aws ucsd_cloud_cli <command> <arguments> <options>
@@ -71,7 +71,7 @@ This toolset leverages the following core dependencies:
 
 ## Click CLI
 
-Click offers a simple CLI integration toolset that has a rich set of parsers and help functions to make the user's experience as simple as possible. Note that the screen shots below were run on a development machine. When installed, rather than typing `python -m ucsd_cloud_cli` from the same directory of the project, the `ucsd_cloud_cli` command will be available whenever the proper virtualenv is enabled (in our case above, named `ucsd`)
+Click offers a simple CLI integration tool set that has a rich set of parsers and help functions to make the user's experience as simple as possible. Note that the screen shots below were run on a development machine. When installed, rather than typing `python -m ucsd_cloud_cli` from the same directory of the project, the `ucsd_cloud_cli` command will be available whenever the proper `virtualenv` is enabled (in our case above, named `ucsd`)
 
 ### Top Level Help
 
@@ -79,13 +79,13 @@ Click offers a simple CLI integration toolset that has a rich set of parsers and
 
 The top level help shows the various commands available. Since this is a hierarchical set of commands, there are a few different pathways to manage logging source and target CloudFormation scripts/deployments.
 
-### Target Generate Args and Options
+### Target Generate Arguments and Options
 
 ![Target Generate Help](doc/target_generate_help.png)
 
 This image shows the help string when a user is attempting to generate the log target CloudFormation script. Note that details are pulled from the [docstring](https://www.python.org/dev/peps/pep-0257/) for the description of the command.
 
-### Source Generate Args and Options
+### Source Generate Arguments and Options
 
 ![Source Generate Help](doc/source_generate_help.png)
 
