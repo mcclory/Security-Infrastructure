@@ -41,7 +41,7 @@ Installation of this project from the command line is simple:
 * From the command line, navigate to the directory where the `setup.py` script is (should be the directory that was created via `git clone` or when the downloaded zip file was unarchived)
 * Before you install, create a virtual environment for this project: `mkvirtualenv -p <path_to_python3> ucsd`
   * if/when you exit and return to the commandline, re-enable the `ucsd` virtualenv with the following command: `workon ucsd`
-* Run the `setup_tools` install process with the following command: `python setup.py install`
+* Run the `setuptools` install process with the following command: `python setup.py install`
 * From here, you should have a `ucsd_cloud_cli` command that runs the code within this project installed to your python packages directory
 
 
