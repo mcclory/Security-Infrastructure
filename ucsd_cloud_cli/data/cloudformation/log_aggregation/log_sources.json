@@ -38,7 +38,8 @@
     },
     "Parameters": {
         "CloudTrailBucketName": {
-            "Description": "Name of the S3 bucket to ship logs to in the centralized aggregation account.",
+            "Default": "",
+            "Description": "Name of the S3 Bucket for delivery of CloudTrail logs",
             "Type": "String"
         },
         "CloudTrailIncludeGlobal": {
@@ -73,36 +74,42 @@
             "Description": "Flag indicating that CloudTrail is to be configured in multi-region mode",
             "Type": "String"
         },
+        "LogDeliveryDestinationArn": {
+            "Default": "",
+            "Description": "ARN of the Log Destination to send logs to.",
+            "Type": "String"
+        },
+        "LogDeliveryIAMRole": {
+            "Default": "",
+            "Description": "ARN of the Role created to allow CloudWatchLogs to dump logs to the Log Destination",
+            "Type": "String"
+        },
         "LogGroupRetentionInDays": {
             "Default": 1,
             "Description": "Number of days to retain logs in the CloudWatch Log Group",
             "MaxValue": 14,
             "MinValue": 1,
             "Type": "Number"
-        },
-        "MasterAccountDeliveryARN": {
-            "Default": "",
-            "Description": "ARN of the Kinesis stream to send logs to.",
-            "Type": "String"
-        },
-        "MasterAccountRoleARN": {
-            "Default": "",
-            "Description": "ARN of the Role created to allow CloudWatchLogs to dump logs to the log Kinesis stream",
-            "Type": "String"
         }
     },
     "Resources": {
+        "PrimaryLogStream": {
+            "Properties": {
+                "LogGroupName": {
+                    "Ref": "SecurityLogShippingGroup"
+                },
+                "LogStreamName": "PrimaryLogStream"
+            },
+            "Type": "AWS::Logs::LogStream"
+        },
         "SecurityLogShippingFilter": {
             "Properties": {
                 "DestinationArn": {
-                    "Ref": "MasterAccountDeliveryARN"
+                    "Ref": "LogDeliveryDestinationArn"
                 },
                 "FilterPattern": "{$.userIdentity.type = Root}",
                 "LogGroupName": {
                     "Ref": "SecurityLogShippingGroup"
-                },
-                "RoleArn": {
-                    "Ref": "MasterAccountRoleARN"
                 }
             },
             "Type": "AWS::Logs::SubscriptionFilter"
@@ -118,12 +125,6 @@
         },
         "SecurityTrail": {
             "Properties": {
-                "CloudWatchLogsLogGroupArn": {
-                    "Ref": "MasterAccountDeliveryARN"
-                },
-                "CloudWatchLogsRoleArn": {
-                    "Ref": "MasterAccountRoleARN"
-                },
                 "IncludeGlobalServiceEvents": {
                     "Ref": "CloudTrailIncludeGlobal"
                 },

@@ -9,6 +9,7 @@ from troposphere import GetAtt, Ref, Join, Template, AccountId, Region, Output, 
 import troposphere.iam as iam
 import troposphere.cloudtrail as ct
 import troposphere.logs as cwl
+import troposphere.s3 as s3
 import troposphere.ec2 as ec2
 
 from awacs.aws import Allow, Statement, Principal, Policy
@@ -90,15 +91,15 @@ def generate(dry_run, file_location=None):
     #
 
         # Parameters
-    delivery_stream_arn = t.add_parameter(Parameter('MasterAccountDeliveryARN',
+    delivery_stream_arn = t.add_parameter(Parameter('LogDeliveryDestinationArn',
                                           Type="String",
                                           Default="",
-                                          Description="ARN of the Kinesis stream to send logs to."))
+                                          Description="ARN of the Log Destination to send logs to."))
 
-    delivery_role_arn = t.add_parameter(Parameter('MasterAccountRoleARN',
+    delivery_role_arn = t.add_parameter(Parameter('LogDeliveryIAMRole',
                                         Type="String",
                                         Default="",
-                                        Description="ARN of the Role created to allow CloudWatchLogs to dump logs to the log Kinesis stream"))
+                                        Description="ARN of the Role created to allow CloudWatchLogs to dump logs to the Log Destination"))
 
         # resources
     cwl_group_retention = t.add_parameter(Parameter("LogGroupRetentionInDays",
@@ -114,9 +115,12 @@ def generate(dry_run, file_location=None):
 
     cwl_subscription = t.add_resource(cwl.SubscriptionFilter('SecurityLogShippingFilter',
                                       DestinationArn=Ref(delivery_stream_arn),
-                                      RoleArn=Ref(delivery_role_arn),
                                       LogGroupName=Ref(cwl_group),
                                       FilterPattern="{$.userIdentity.type = Root}"))
+
+    cwl_primary_stream = t.add_resource(cwl.LogStream('PrimaryLogStream',
+                                        LogGroupName=Ref(cwl_group),
+                                        LogStreamName='PrimaryLogStream'))
 
     # Create IAM role to allow VPC Flow Logs within this account to push data to CloudWatch Logs per https://docs.aws.amazon.com/AmazonVPC/latest/UserGuide/flow-logs.html#flow-logs-iam
     vpc_flow_log_iam_role = t.add_resource(iam.Role('VPCFlowLogToCWLIAMRole',
@@ -170,22 +174,21 @@ def generate(dry_run, file_location=None):
                                       AllowedValues=["true", "false"],
                                       Description="Flag indicating that CloudTrail is to be configured in multi-region mode"))
 
-    ct_s3_bucket = t.add_parameter(Parameter('CloudTrailBucketName',
-                                   Type='String',
-                                   Description='Name of the S3 bucket to ship logs to in the centralized aggregation account.'))
-
     ct_s3_key_prefix = t.add_parameter(Parameter('CloudTrailKeyPrefix',
                                        Type='String',
                                        Default='',
                                        Description='Key name prefix for logs being sent to S3'))
 
+    ct_bucket_name = t.add_parameter(Parameter('CloudTrailBucketName',
+                                     Type='String',
+                                     Default='',
+                                     Description='Name of the S3 Bucket for delivery of CloudTrail logs'))
         # resources
+
     ct_trail = t.add_resource(ct.Trail(
                               "SecurityTrail",
                               TrailName=Join("-", ["SecurityTrail", Region]),
-                              CloudWatchLogsLogGroupArn=Ref(delivery_stream_arn),
-                              CloudWatchLogsRoleArn=Ref(delivery_role_arn),
-                              S3BucketName=Ref(ct_s3_bucket),
+                              S3BucketName=Ref(ct_bucket_name),
                               S3KeyPrefix=Ref(ct_s3_key_prefix),
                               IncludeGlobalServiceEvents=Ref(ct_include_global),
                               IsMultiRegionTrail=Ref(ct_multi_region),

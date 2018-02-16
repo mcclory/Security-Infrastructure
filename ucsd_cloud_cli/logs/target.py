@@ -12,10 +12,11 @@ import troposphere.cloudtrail as ct
 import troposphere.logs as cwl
 import troposphere.kinesis as k
 
-from awacs.aws import Allow, Statement, Principal, Policy
+from awacs.aws import Allow, Statement, Principal, Policy, Condition, StringEquals
 from awacs.kinesis import PutRecord as KinesisPutRecord
 from awacs.iam import PassRole as IAMPassRole
 from awacs.sts import AssumeRole
+from awacs.s3 import GetBucketAcl, PutObject
 
 log_aggregation_cf = os.path.join(cf_data_dir, 'log_aggregation')
 SUPPORTED_SERVICES = ['cloudtrail', 'cloudwatch', 'vpc_flow_logs']
@@ -113,7 +114,17 @@ def generate(account_list=None, region_list=None, file_location=None, dry_run=Fa
                     Action=[IAMPassRole],
                     Resource=[GetAtt(log_ingest_iam_role, "Arn")])])))
 
+    t.add_output(Output('LogDeliveryIAMRole',
+                 Description="ARN of the IAM role to supply to the source_log template for log delivery to the Kinesis Stream",
+                 Value=GetAtt(log_ingest_iam_role, "Arn")))
+
     # Generate Bucket with Lifecycle Policies
+
+    ct_s3_key_prefix = t.add_parameter(Parameter('CloudTrailKeyPrefix',
+                                       Type='String',
+                                       Default='',
+                                       Description='Key name prefix for logs being sent to S3'))
+
     bucket_name = t.add_parameter(Parameter("BucketName",
                                   Description="Name to assign to the central logging retention bucket",
                                   Type="String",
@@ -144,18 +155,38 @@ def generate(account_list=None, region_list=None, file_location=None, dry_run=Fa
                                         StorageClass="Glacier",
                                         TransitionInDays=Ref(glacier_migration_days)))])))
 
+    bucket_policy = t.add_resource(s3.BucketPolicy("LogDeliveryBucketPolicy",
+                                    Bucket=Ref(bucket),
+                                    PolicyDocument=Policy(
+                                        Statement=[
+                                            Statement(
+                                                Effect="Allow",
+                                                Principal=Principal("Service", "cloudtrail.amazonaws.com"),
+                                                Action=[GetBucketAcl],
+                                                Resource=[GetAtt(bucket, 'Arn')]),
+                                            Statement(
+                                                Effect="Allow",
+                                                Principal=Principal("Service", "cloudtrail.amazonaws.com"),
+                                                Action=[PutObject],
+                                                Condition=Condition(StringEquals({"s3:x-amz-acl": "bucket-owner-full-control"})),
+                                                Resource=[Join('', [GetAtt(bucket, "Arn"), Ref(ct_s3_key_prefix), "/AWSLogs/", acct_id, "/*"]) for acct_id in account_list])])))
+
+    t.add_output(Output('BucketName',
+                 Description="Name of the bucket for CloudTrail log delivery",
+                 Value=Ref(bucket)))
+
     # Log destination setup
     log_destination_name = "LogIngestDestination"
     log_destination = t.add_resource(cwl.Destination(log_destination_name,
-                                     DestinationName="LogIngestDestination",
+                                     DestinationName=log_destination_name,
                                      DestinationPolicy=_generate_log_destination_policy(log_destination_name, account_list),
                                      TargetArn=GetAtt(log_stream, "Arn"),
                                      RoleArn=GetAtt(log_ingest_iam_role, "Arn"),
                                      DependsOn=[log_ingest_iam_policy.name, bucket.name]))
 
-    t.add_output(Output("StreamArn",
-                 Value=GetAtt(log_stream, "Arn"),
-                 Description="ARN of the Kinesis stream for log aggregation via CloudWatch Logs"))
+    t.add_output(Output("LogDeliveryDestinationArn",
+                 Value=GetAtt(log_destination, "Arn"),
+                 Description="ARN of the Log Destination for log aggregation via CloudWatch Logs"))
 
     t.add_output(Output("DeploymentAccount",
                  Value=AccountId,
@@ -176,14 +207,12 @@ def _generate_log_destination_policy(log_destination_name, account_list=[]):
     policy_doc = []
 
     policy_doc.append('{"Version" : "2012-10-17","Statement" : [')
-    for source_account_id in account_list:
-        policy_doc.append('{"Sid" : "","Effect" : "Allow","Principal" : {"AWS" : "')
-        policy_doc.append(source_account_id)
-        policy_doc.append('"},"Action" : "logs:PutSubscriptionFilter","Resource" : "arn:aws:logs:')
-        policy_doc.append(Join(':', [Region, AccountId]))
-        policy_doc.append(':destination:testDestination"}')
-        policy_doc.append(',')
-
-    del policy_doc[-1]
+    policy_doc.append('{"Sid" : "",')
+    policy_doc.append('"Effect" : "Allow",')
+    policy_doc.append('"Principal" : {"AWS" : [' + ','.join(['"%s"' % s for s in account_list]) + ']},')
+    policy_doc.append('"Action" : "logs:PutSubscriptionFilter",')
+    policy_doc.append('"Resource" : "arn:aws:logs:')
+    policy_doc.append(Join(':', [Region, AccountId, "destination", log_destination_name]))
+    policy_doc.append('"}')
     policy_doc.append(']}')
     return Join("", policy_doc)
