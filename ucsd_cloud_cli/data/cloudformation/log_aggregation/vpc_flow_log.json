@@ -1,4 +1,6 @@
 {
+    "AWSTemplateFormatVersion": "2010-09-09",
+    "Description": "UCSD VPC Flow Log AWS CloudFormation Template - on a per-VPC basis within an account that has been configured with the 'UCSD Log Source AWS CloudFormation Template', this template will ensure VPC Flow logs are forwarded to to the preconfigured Log Groups for aggregation to the central logging setup.",
     "Parameters": {
         "DeliveryLogsPermissionArn": {
             "Description": "The Amazon Resource Name (ARN) of an AWS Identity and Access Management (IAM) role that permits Amazon EC2 to publish flow logs to a CloudWatch Logs log group in your account. - log_sources output name: VPCFlowLogDeliveryLogsPermissionArn",
