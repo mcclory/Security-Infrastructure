@@ -1,4 +1,6 @@
 {
+    "AWSTemplateFormatVersion": "2010-09-09",
+    "Description": "UCSD Log Source AWS CloudFormation Template - this template is meant to be applied to pre-approved accounts and configures CloudWatch Logs to forward to the UCSD log aggregation process.",
     "Outputs": {
         "CloudTrailARN": {
             "Description": "ARN of the CloudTrail Trail configured for this log source deployment.",
