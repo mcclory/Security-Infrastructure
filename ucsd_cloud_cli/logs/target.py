@@ -176,14 +176,14 @@ def _generate_log_destination_policy(log_destination_name, account_list=[]):
     policy_doc = []
 
     policy_doc.append('{"Version" : "2012-10-17","Statement" : [')
-    for source_account_id in account_list:
-        policy_doc.append('{"Sid" : "","Effect" : "Allow","Principal" : {"AWS" : "')
-        policy_doc.append(source_account_id)
-        policy_doc.append('"},"Action" : "logs:PutSubscriptionFilter","Resource" : "arn:aws:logs:')
-        policy_doc.append(Join(':', [Region, AccountId]))
-        policy_doc.append(':destination:testDestination"}')
-        policy_doc.append(',')
-
-    del policy_doc[-1]
+    if account_list:
+        for source_account_id in account_list:
+            policy_doc.append('{"Sid" : "","Effect" : "Allow","Principal" : {"AWS" : "')
+            policy_doc.append(source_account_id)
+            policy_doc.append('"},"Action" : "logs:PutSubscriptionFilter","Resource" : "arn:aws:logs:')
+            policy_doc.append(Join(':', [Region, AccountId]))
+            policy_doc.append(':destination:testDestination"}')
+            policy_doc.append(',')
+        del policy_doc[-1]
     policy_doc.append(']}')
     return Join("", policy_doc)

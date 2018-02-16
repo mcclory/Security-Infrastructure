@@ -94,6 +94,60 @@
                     "Fn::Join": [
                         "",
                         [
+                            "{\"Version\" : \"2012-10-17\",\"Statement\" : [",
+                            "{\"Sid\" : \"\",\"Effect\" : \"Allow\",\"Principal\" : {\"AWS\" : \"",
+                            "802640662990",
+                            "\"},\"Action\" : \"logs:PutSubscriptionFilter\",\"Resource\" : \"arn:aws:logs:",
+                            {
+                                "Fn::Join": [
+                                    ":",
+                                    [
+                                        {
+                                            "Ref": "AWS::Region"
+                                        },
+                                        {
+                                            "Ref": "AWS::AccountId"
+                                        }
+                                    ]
+                                ]
+                            },
+                            ":destination:testDestination\"}",
+                            ",",
+                            "{\"Sid\" : \"\",\"Effect\" : \"Allow\",\"Principal\" : {\"AWS\" : \"",
+                            "969379222189",
+                            "\"},\"Action\" : \"logs:PutSubscriptionFilter\",\"Resource\" : \"arn:aws:logs:",
+                            {
+                                "Fn::Join": [
+                                    ":",
+                                    [
+                                        {
+                                            "Ref": "AWS::Region"
+                                        },
+                                        {
+                                            "Ref": "AWS::AccountId"
+                                        }
+                                    ]
+                                ]
+                            },
+                            ":destination:testDestination\"}",
+                            ",",
+                            "{\"Sid\" : \"\",\"Effect\" : \"Allow\",\"Principal\" : {\"AWS\" : \"",
+                            "169929244869",
+                            "\"},\"Action\" : \"logs:PutSubscriptionFilter\",\"Resource\" : \"arn:aws:logs:",
+                            {
+                                "Fn::Join": [
+                                    ":",
+                                    [
+                                        {
+                                            "Ref": "AWS::Region"
+                                        },
+                                        {
+                                            "Ref": "AWS::AccountId"
+                                        }
+                                    ]
+                                ]
+                            },
+                            ":destination:testDestination\"}",
                             "]}"
                         ]
                     ]
