@@ -195,7 +195,7 @@ def generate(account_list=None, region_list=None, file_location=None, dry_run=Fa
     # Lambda function for Splunk
 
     hec_url = t.add_parameter(Parameter('SplunkHECUrl',
-                              Description="Url of Splunk HEC endpoint for log ingest."
+                              Description="Url of Splunk HEC endpoint for log ingest.",
                               Type="String"))
 
     hec_key = t.add_parameter(Parameter("SplunkHECKey",

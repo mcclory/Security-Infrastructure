@@ -13,9 +13,18 @@ import troposphere.s3 as s3
 import troposphere.ec2 as ec2
 
 from awacs.aws import Allow, Statement, Principal, Policy
-from awacs.logs import CreateLogGroup, CreateLogStream, PutLogEvents, DescribeLogGroups, DescribeLogStreams
+from awacs.logs import CreateLogGroup, CreateLogStream, PutLogEvents, DescribeLogGroups, DescribeLogStreams, GetLogEvents
 from awacs.iam import PassRole as IAMPassRole
 from awacs.sts import AssumeRole
+import awacs.autoscaling as autoscaling
+
+import awacs.autoscaling as aas
+import awacs.cloudwatch as acw
+import awacs.sns as asns
+import awacs.s3 as as3
+import awacs.sqs as asqs
+import awacs.sns as asns
+
 
 log_aggregation_cf = os.path.join(cf_data_dir, 'log_aggregation')
 SUPPORTED_SERVICES = ['cloudtrail', 'cloudwatch', 'vpc_flow_logs']
@@ -198,6 +207,45 @@ def generate(dry_run, file_location=None):
     t.add_output(Output('CloudTrailARN',
                         Description="ARN of the CloudTrail Trail configured for this log source deployment.",
                         Value=GetAtt(ct_trail, "Arn")))
+
+
+    # Splunk Addon User and Policies per http://docs.splunk.com/Documentation/AddOns/released/AWS/ConfigureAWSpermissions
+    addon_user = t.add_resource(iam.User('SplunkAddonUser',
+                                         UserName='splunkaddonuser'))
+
+    # http://docs.splunk.com/Documentation/AddOns/released/AWS/ConfigureAWSpermissions#Configure_CloudTrail_permissions
+    ct_splunk_user_policy = t.add_resource(iam.PolicyType('cloudtrailSplunkPolicy',
+                                           PolicyName='cloudtrailsplunkuser20180213',
+                                           Roles=[Ref(vpc_flow_log_iam_role)],
+                                           PolicyDocument=Policy(
+                                                  Statement=[Statement(
+                                                      Effect=Allow,
+                                                      Action=[
+                                                        asqs.GetQueueAttributes,
+                                                        asqs.ListQueues,
+                                                        asqs.ReceiveMessage,
+                                                        asqs.GetQueueUrl,
+                                                        asqs.DeleteMessage,
+                                                        as3.Action('Get*'),
+                                                        as3.Action('List*'),
+                                                        as3.Action('Delete*')],
+                                                      Resource=["*"])])))
+
+
+    # http://docs.splunk.com/Documentation/AddOns/released/AWS/ConfigureAWSpermissions#Configure_CloudWatch_permissions
+    cw_splunk_user_policy = t.add_resource(iam.PolicyType('cloudwatchSplunkPolicy',
+                                           PolicyName='cloudwatchsplunkuser20180213',
+                                           Roles=[Ref(vpc_flow_log_iam_role)],
+                                           PolicyDocument=Policy(
+                                               Statement=[Statement(
+                                                   Effect=Allow,
+                                                   Action=[aas.Action("Describe*"),
+                                                           acw.Action("Describe*"),
+                                                           acw.Action("Get*"),
+                                                           acw.Action("List*"),
+                                                           asns.Action("Get*"),
+                                                           asns.Action("List*")],
+                                                   Resource=['*'])])))
 
 
     if dry_run:
