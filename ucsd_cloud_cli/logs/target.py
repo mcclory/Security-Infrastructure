@@ -192,6 +192,20 @@ def generate(account_list=None, region_list=None, file_location=None, dry_run=Fa
                  Value=AccountId,
                  Description="Convenience Output for referencing AccountID of the log aggregation account"))
 
+    # Lambda function for Splunk
+
+    hec_url = t.add_parameter(Parameter('SplunkHECUrl',
+                              Description="Url of Splunk HEC endpoint for log ingest."
+                              Type="String"))
+
+    hec_key = t.add_parameter(Parameter("SplunkHECKey",
+                              Description="API Key for use by Splunk HEC log shipper",
+                              Type="String"))
+
+        # Splunk HEC Ingest runs on Node 6.10
+        # Handler: index.handler
+
+
     if dry_run:
         print(t.to_json())
     else:
