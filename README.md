@@ -69,6 +69,17 @@ This toolset leverages the following core dependencies:
 * [troposphere](https://github.com/cloudtools/troposphere) - used to compose CloudFormation templates to avoid string-based JSON errors and other easy to make mistakes.
   * this is truly a time saver and avoids the frustration of building large CloudFormation by offering programmatic syntax and structural validation checks
 
+## Configuring AWS Plugin for Splunk
+
+UCSD is utilizing the [AWS Plugin](http://docs.splunk.com/Documentation/AddOns/released/AWS/Setuptheadd-on) for Splunk which will need to be configured after the overall log shipping/centralization templates have been installed in each AWS account.
+
+The following will be configured to flow logs into S3:
+
+* CloudWatch Logs (including VPC Flow Logs)
+* CloudTrail
+
+This process will then fire SQS notifications which Splunk will use to determine which file(s) to pick up and ingest from the S3 bucket(s) configured. Within Splunk, the [SQS-based S3 input](http://docs.splunk.com/Documentation/AddOns/released/AWS/SQS-basedS3) should be used and wired up to the proper queue(s) and credentials. 
+
 ## Click CLI
 
 Click offers a simple CLI integration tool set that has a rich set of parsers and help functions to make the user's experience as simple as possible. Note that the screen shots below were run on a development machine. When installed, rather than typing `python -m ucsd_cloud_cli` from the same directory of the project, the `ucsd_cloud_cli` command will be available whenever the proper `virtualenv` is enabled (in our case above, named `ucsd`)

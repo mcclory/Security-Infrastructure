@@ -31,6 +31,33 @@
                     "Arn"
                 ]
             }
+        },
+        "splunkCWLAccountUser": {
+            "Description": "The AWS account or EC2 IAM role the Splunk platform uses to access your CloudWatch Logs data. In Splunk Web, select an account from the drop-down list. In aws_cloudwatch_logs_tasks.conf, enter the friendly name of one of the AWS accounts that you configured on the Configuration page or the name of the autodiscovered EC2 IAM role.",
+            "Value": {
+                "Ref": "splunkCWLClient"
+            }
+        },
+        "splunkCWLRegion": {
+            "Description": "The AWS region that contains the data. In aws_cloudwatch_logs_tasks.conf, enter the region ID.",
+            "Value": {
+                "Ref": "AWS::Region"
+            }
+        },
+        "splunkUserAccessKey": {
+            "Description": "AWS Access Key for the user created for splunk to use when accessing logs",
+            "Value": {
+                "Ref": "splunkAccountUserCreds"
+            }
+        },
+        "splunkUserSecretKey": {
+            "Description": "AWS Secret Access Key ID for the user created for splunk to use when accessing logs",
+            "Value": {
+                "Fn::GetAtt": [
+                    "splunkAccountUserCreds",
+                    "SecretAccessKey"
+                ]
+            }
         }
     },
     "Parameters": {
@@ -97,6 +124,19 @@
                                     }
                                 }
                             ]
+                        }
+                    ]
+                },
+                "NotificationConfiguration": {
+                    "QueueConfigurations": [
+                        {
+                            "Event": "s3:ObjectCreated:*",
+                            "Queue": {
+                                "Fn::GetAtt": [
+                                    "s3DeliveryQueue",
+                                    "Arn"
+                                ]
+                            }
                         }
                     ]
                 }
@@ -399,6 +439,117 @@
                 }
             },
             "Type": "AWS::Kinesis::Stream"
+        },
+        "s3DeliveryQueue": {
+            "Properties": {
+                "MessageRetentionPeriod": 1209600,
+                "VisibilityTimeout": 300
+            },
+            "Type": "AWS::SQS::Queue"
+        },
+        "splunkAccountUserCreds": {
+            "Properties": {
+                "UserName": {
+                    "Ref": "splunkCWLClient"
+                }
+            },
+            "Type": "AWS::IAM::AccessKey"
+        },
+        "splunkAllAccessPolicy": {
+            "Properties": {
+                "PolicyDocument": {
+                    "Statement": [
+                        {
+                            "Action": [
+                                "sqs:GetQueueAttributes",
+                                "sqs:ListQueues",
+                                "sqs:ReceiveMessage",
+                                "sqs:GetQueueUrl",
+                                "sqs:SendMessage",
+                                "sqs:DeleteMessage",
+                                "s3:ListBucket",
+                                "s3:GetObject",
+                                "s3:GetBucketLocation",
+                                "s3:ListAllMyBuckets",
+                                "s3:GetBucketTagging",
+                                "s3:GetAccelerateConfiguration",
+                                "s3:GetBucketLogging",
+                                "s3:GetLifecycleConfiguration",
+                                "s3:GetBucketCORS",
+                                "config:DeliverConfigSnapshot",
+                                "config:DescribeConfigRules",
+                                "config:DescribeConfigRuleEvaluationStatus",
+                                "config:GetComplianceDetailsByConfigRule",
+                                "config:GetComplianceSummaryByConfigRule",
+                                "iam:GetUser",
+                                "iam:ListUsers",
+                                "iam:GetAccountPasswordPolicy",
+                                "iam:ListAccessKeys",
+                                "iam:GetAccessKeyLastUsed",
+                                "autoscaling:Describe*",
+                                "cloudwatch:Describe*",
+                                "cloudwatch:Get*",
+                                "cloudwatch:List*",
+                                "sns:Get*",
+                                "sns:List*",
+                                "sns:Publish",
+                                "logs:DescribeLogGroups",
+                                "logs:DescribeLogStreams",
+                                "logs:GetLogEvents",
+                                "ec2:DescribeInstances",
+                                "ec2:DescribeReservedInstances",
+                                "ec2:DescribeSnapshots",
+                                "ec2:DescribeRegions",
+                                "ec2:DescribeKeyPairs",
+                                "ec2:DescribeNetworkAcls",
+                                "ec2:DescribeSecurityGroups",
+                                "ec2:DescribeSubnets",
+                                "ec2:DescribeVolumes",
+                                "ec2:DescribeVpcs",
+                                "ec2:DescribeImages",
+                                "ec2:DescribeAddresses",
+                                "lambda:ListFunctions",
+                                "rds:DescribeDBInstances",
+                                "cloudfront:ListDistributions",
+                                "elasticloadbalancing:DescribeLoadBalancers",
+                                "elasticloadbalancing:DescribeInstanceHealth",
+                                "elasticloadbalancing:DescribeTags",
+                                "elasticloadbalancing:DescribeTargetGroups",
+                                "elasticloadbalancing:DescribeTargetHealth",
+                                "elasticloadbalancing:DescribeListeners",
+                                "inspector:Describe*",
+                                "inspector:List*",
+                                "kinesis:Get*",
+                                "kinesis:DescribeStream",
+                                "kinesis:ListStreams",
+                                "kms:Decrypt",
+                                "sts:AssumeRole"
+                            ],
+                            "Effect": "Allow",
+                            "Resource": [
+                                "*"
+                            ]
+                        }
+                    ]
+                },
+                "PolicyName": "splunkAllAccessPolicy20180224",
+                "Roles": []
+            },
+            "Type": "AWS::IAM::Policy"
+        },
+        "splunkCWLClient": {
+            "Properties": {
+                "Path": "/",
+                "UserName": "splunkCWLClient"
+            },
+            "Type": "AWS::IAM::User"
+        },
+        "splunkS3SQSUser": {
+            "Properties": {
+                "Path": "/",
+                "UserName": "splunkS3SQSUser"
+            },
+            "Type": "AWS::IAM::User"
         }
     }
 }

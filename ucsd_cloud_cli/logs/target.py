@@ -11,12 +11,30 @@ import troposphere.s3 as s3
 import troposphere.cloudtrail as ct
 import troposphere.logs as cwl
 import troposphere.kinesis as k
+import troposphere.sqs as sqs
 
 from awacs.aws import Allow, Statement, Principal, Policy, Condition, StringEquals
 from awacs.kinesis import PutRecord as KinesisPutRecord
 from awacs.iam import PassRole as IAMPassRole
 from awacs.sts import AssumeRole
 from awacs.s3 import GetBucketAcl, PutObject
+import awacs.sqs as asqs
+import awacs.ec2 as aec2
+import awacs.awslambda as al
+import awacs.kinesis as akinesis
+import awacs.kms as akms
+import awacs.sts as asts
+import awacs.rds as ards
+import awacs.cloudfront as acf
+import awacs.cloudwatch as acw
+import awacs.elasticloadbalancing as aelb
+import awacs.inspector as ainspector
+import awacs.sns as asns
+import awacs.logs as alogs
+import awacs.config as aconfig
+import awacs.s3 as as3
+import awacs.iam as aiam
+import awacs.autoscaling as aas
 
 log_aggregation_cf = os.path.join(cf_data_dir, 'log_aggregation')
 SUPPORTED_SERVICES = ['cloudtrail', 'cloudwatch', 'vpc_flow_logs']
@@ -31,43 +49,42 @@ def target():
     """Command group pertaining to the management of CloudFormation templates designed to configure the AWS account where infrastructure-level logging is aggregated to."""
     pass
 
-@target.command()
-@click.option('--account_id', '-a', 'account_id_list', multiple=True)
-@click.option('--bucket-name', '-b', 'bucket_name', envvar='BUCKETNAME')
-@click.option('--log-file-prefix', 'log_file_prefix', '-p')
-@click.option('--profile', '-p', 'aws_profile', envvar='AWS_PROFILE')
-@click.option('--region', '-r', 'aws_region', envvar='AWS_REGION')
-@click.option('--dry-run', 'dry_run', is_flag=True, prompt='Dry Run' if os.getenv('CLI_PROMPT') else None, help="boolean indicates whether template should be printed to screen vs. being saved to file")
-def initialize(account_id_list, bucket_name=None, log_file_prefix=None, aws_profile=None, aws_region=None, dry_run=False):
-    """Logging target initializer that generates an appropriate CloudFormation template and then deploys it to create the necessary infrastructure for centralized security logging within the UCSD architecture."""
-    template_name = 's3_log_target.yaml'
-    with open (os.path.join(log_aggregation_cf, template_name), 'r') as f:
-        cf_data = yaml.load(f.read())
-
-    bucket_name = bucket_name if bucket_name else {'Ref': 'LogTargetS3Bucket'}
-    log_file_prefix = log_file_prefix if log_file_prefix else ''
-    aws_profile = aws_profile if aws_profile else 'default'
-    aws_region = aws_region if aws_region else 'us-west-2'
-
-    if 'Resources' in cf_data.keys():
-        cf_data['Resources']['CloudwatchS3BucketPolicy'] = _generate_cloudwatch_bucket_policy(bucket_name, account_id_list, log_file_prefix)
-    else:
-        raise KeyError('CloudFormation template does not have the proper "Resources" section. Please check the %s template and try again' % template_name)
-
-
-    if dry_run:
-        print(cloudformation_template)
-    else:
-        # perform calls to AWS and return results to stdout
-        pass
+def _generate_splunk_policy(policy_name='splunkAllAccessPolicy', roles=[], users=[]):
+    """Helper method to encapsulate the complexity of generating the 'all-in-one' policy document for Splunk AWS Plugin per http://docs.splunk.com/Documentation/AddOns/released/AWS/ConfigureAWSpermissions#Configure_one_policy_containing_permissions_for_all_inputs"""
+    return iam.PolicyType(policy_name,
+        PolicyName="%s20180224" % policy_name,
+        Roles=roles,
+        PolicyDocument=Policy(
+            Statement=[
+                Statement(
+                    Effect=Allow,
+                    Action=[asqs.GetQueueAttributes, asqs.ListQueues, asqs.ReceiveMessage, asqs.GetQueueUrl, asqs.SendMessage, asqs.DeleteMessage,
+                            as3.ListBucket, as3.GetObject, as3.GetBucketLocation, as3.ListAllMyBuckets, as3.GetBucketTagging, as3.GetAccelerateConfiguration, as3.GetBucketLogging, as3.GetLifecycleConfiguration, as3.GetBucketCORS,
+                            aconfig.DeliverConfigSnapshot, aconfig.DescribeConfigRules, aconfig.DescribeConfigRuleEvaluationStatus, aconfig.GetComplianceDetailsByConfigRule, aconfig.GetComplianceSummaryByConfigRule,
+                            aiam.GetUser, aiam.ListUsers, aiam.GetAccountPasswordPolicy, aiam.ListAccessKeys, aiam.GetAccessKeyLastUsed,
+                            aas.Action('Describe*'),
+                            acw.Action('Describe*'), acw.Action('Get*'), acw.Action('List*'),
+                            asns.Action('Get*'), asns.Action('List*'), asns.Publish,
+                            alogs.DescribeLogGroups, alogs.DescribeLogStreams, alogs.GetLogEvents,
+                            aec2.DescribeInstances, aec2.DescribeReservedInstances, aec2.DescribeSnapshots, aec2.DescribeRegions, aec2.DescribeKeyPairs, aec2.DescribeNetworkAcls, aec2.DescribeSecurityGroups, aec2.DescribeSubnets, aec2.DescribeVolumes, aec2.DescribeVpcs, aec2.DescribeImages, aec2.DescribeAddresses,
+                            al.ListFunctions,
+                            ards.DescribeDBInstances,
+                            acf.ListDistributions,
+                            aelb.DescribeLoadBalancers, aelb.DescribeInstanceHealth, aelb.DescribeTags, aelb.DescribeTargetGroups, aelb.DescribeTargetHealth, aelb.DescribeListeners,
+                            ainspector.Action('Describe*'), ainspector.Action('List*'),
+                            akinesis.Action('Get*'), akinesis.DescribeStream, akinesis.ListStreams,
+                            akms.Decrypt,
+                            asts.AssumeRole],
+                    Resource=["*"])]))
 
 
 @target.command()
 @click.option('-r', '--region', 'region_list', multiple=True, prompt='Child Account Region List' if os.getenv('CLI_PROMPT') else None, help="list of accounts that are to be allowed tgit so publish logs into 'this' account (where the template is installed)")
 @click.option('-a', '--account', 'account_list', multiple=True, prompt='Child Account ID List' if os.getenv('CLI_PROMPT') else None, help="list of regions that are being used to deploy into - affects policies created to allow cross-account communciation")
 @click.option('--file', '-f', 'file_location', type=click.Path(), prompt="Save file path" if os.getenv('CLI_PROMPT') else None, help="Specific path to save the generated template in. If not specifies, defaults to package data directory.")
+@click.option('--output-keys', 'output_keys', is_flag=True, prompt='Output Keys' if os.getenv('CLI_PROMPT') else None, help="boolean indicates whether template should include AWS IAM User access and secret key in the outputs of the template.")
 @click.option('--dry-run', 'dry_run', is_flag=True, prompt='Dry Run' if os.getenv('CLI_PROMPT') else None, help="boolean indicates whether template should be printed to screen vs. being saved to file")
-def generate(account_list=None, region_list=None, file_location=None, dry_run=False):
+def generate(account_list=None, region_list=None, file_location=None, output_keys=False, dry_run=False):
     """CloudFormation template generator for use in creating the resources required to capture logs in a centrally managed account per UCSD standards."""
     if type(account_list) == tuple:
         account_list = list(account_list)
@@ -142,10 +159,18 @@ def generate(account_list=None, region_list=None, file_location=None, dry_run=Fa
                                             Type="Number",
                                             Default=365*7))
 
+    queue = t.add_resource(sqs.Queue('s3DeliveryQueue',
+                           MessageRetentionPeriod=14*24*60*60, # 14 d * 24 h * 60 m * 60 s
+                           VisibilityTimeout=5*60)) # 5 m * 60 s per Splunk docs here: http://docs.splunk.com/Documentation/AddOns/released/AWS/ConfigureAWS#Configure_SQS
+
     bucket = t.add_resource(s3.Bucket("LogDeliveryBucket",
                             DependsOn=[log_stream.name],
                             BucketName=Ref(bucket_name),
                             AccessControl="LogDeliveryWrite",
+                            NotificationConfiguration=s3.NotificationConfiguration(
+                                QueueConfigurations=[s3.QueueConfigurations(
+                                    Event="s3:ObjectCreated:*",
+                                    Queue=GetAtt(queue, 'Arn'))]),
                             LifecycleConfiguration=s3.LifecycleConfiguration(Rules=[
                                 s3.LifecycleRule(
                                     Id="S3ToGlacierTransition",
@@ -171,6 +196,12 @@ def generate(account_list=None, region_list=None, file_location=None, dry_run=Fa
                                                 Condition=Condition(StringEquals({"s3:x-amz-acl": "bucket-owner-full-control"})),
                                                 Resource=[Join('', [GetAtt(bucket, "Arn"), Ref(ct_s3_key_prefix), "/AWSLogs/", acct_id, "/*"]) for acct_id in account_list])])))
 
+    splunk_sqs_s3_user = t.add_resource(iam.User('splunkS3SQSUser',
+                                        Path='/',
+                                        UserName='splunkS3SQSUser'))
+
+    splunk_user_policy = t.add_resource(_generate_splunk_policy(users=[Ref(splunk_sqs_s3_user)]))
+
     t.add_output(Output('BucketName',
                  Description="Name of the bucket for CloudTrail log delivery",
                  Value=Ref(bucket)))
@@ -184,6 +215,34 @@ def generate(account_list=None, region_list=None, file_location=None, dry_run=Fa
                                      RoleArn=GetAtt(log_ingest_iam_role, "Arn"),
                                      DependsOn=[log_ingest_iam_policy.name, bucket.name]))
 
+    splunk_account_user = t.add_resource(iam.User('splunkCWLClient',
+                                         Path='/',
+                                         UserName='splunkCWLClient'))
+
+    t.add_output(Output('splunkCWLAccountUser',
+                Description="The AWS account or EC2 IAM role the Splunk platform uses to access your CloudWatch Logs data. In Splunk Web, select an account from the drop-down list. In aws_cloudwatch_logs_tasks.conf, enter the friendly name of one of the AWS accounts that you configured on the Configuration page or the name of the autodiscovered EC2 IAM role.",
+                Value=Ref(splunk_account_user)))
+
+    if output_keys:
+        splunk_user_creds = t.add_resource(iam.AccessKey('splunkAccountUserCreds',
+                                           UserName=Ref(splunk_account_user)))
+
+        t.add_output(Output('splunkUserAccessKey',
+                     Description='AWS Access Key for the user created for splunk to use when accessing logs',
+                     Value=Ref(splunk_user_creds)))
+
+        t.add_output(Output('splunkUserSecretKey',
+                     Description='AWS Secret Access Key ID for the user created for splunk to use when accessing logs',
+                     Value=GetAtt(splunk_user_creds, 'SecretAccessKey')))
+
+
+    t.add_output(Output('splunkCWLRegion',
+                 Description="The AWS region that contains the data. In aws_cloudwatch_logs_tasks.conf, enter the region ID.",
+                 Value=Region))
+
+#    t.add_output(Output('splunkCWLGroups',
+#                 description="A comma-separated list of log group names. Note: Wildcard is not supported for configuring log group names in the current release."))
+
     t.add_output(Output("LogDeliveryDestinationArn",
                  Value=GetAtt(log_destination, "Arn"),
                  Description="ARN of the Log Destination for log aggregation via CloudWatch Logs"))
@@ -191,20 +250,6 @@ def generate(account_list=None, region_list=None, file_location=None, dry_run=Fa
     t.add_output(Output("DeploymentAccount",
                  Value=AccountId,
                  Description="Convenience Output for referencing AccountID of the log aggregation account"))
-
-    # Lambda function for Splunk
-
-    hec_url = t.add_parameter(Parameter('SplunkHECUrl',
-                              Description="Url of Splunk HEC endpoint for log ingest.",
-                              Type="String"))
-
-    hec_key = t.add_parameter(Parameter("SplunkHECKey",
-                              Description="API Key for use by Splunk HEC log shipper",
-                              Type="String"))
-
-        # Splunk HEC Ingest runs on Node 6.10
-        # Handler: index.handler
-
 
     if dry_run:
         print(t.to_json())
