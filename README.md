@@ -81,6 +81,8 @@ This process will then fire SQS notifications which Splunk will use to determine
 
 CloudWatch Logs have a specific structure for ingest into Splunk via the [Cloudwatch Log Input](http://docs.splunk.com/Documentation/AddOns/released/AWS/SQS-basedS3).
 
+The `target` template which is to be installed on the account for use as the 'centralized logging repository' creates an IAM user and (optionally, based on including the `--output-keys` flag at the time the template is generated) a set of credentials that are included in the CloudFormation template outputs for copy/paste into the Splunk configuration for the AWS plugin. Otherwise, the only manual step required here is to go to the IAM console, find the IAM user specified by the CloudFormation Output `splunkAccountUserName` and generate a set of AWS API credentials for use within the Splunk AWS Plugin config.
+
 ## Click CLI
 
 Click offers a simple CLI integration tool set that has a rich set of parsers and help functions to make the user's experience as simple as possible. Note that the screen shots below were run on a development machine. When installed, rather than typing `python -m ucsd_cloud_cli` from the same directory of the project, the `ucsd_cloud_cli` command will be available whenever the proper `virtualenv` is enabled (in our case above, named `ucsd`)
@@ -142,4 +144,3 @@ Command to generate target CloudFormation template for our 3 test accounts:
 ```bash
 python -m ucsd_cloud_cli target generate -a 802640662990 -a 969379222189 -a 169929244869
 ```
-802640662990,969379222189,169929244869

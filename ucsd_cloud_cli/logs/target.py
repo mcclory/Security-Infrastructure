@@ -219,7 +219,7 @@ def generate(account_list=None, region_list=None, file_location=None, output_key
                                          Path='/',
                                          UserName='splunkCWLClient'))
 
-    t.add_output(Output('splunkCWLAccountUser',
+    t.add_output(Output('splunkAccountUserName',
                 Description="The AWS account or EC2 IAM role the Splunk platform uses to access your CloudWatch Logs data. In Splunk Web, select an account from the drop-down list. In aws_cloudwatch_logs_tasks.conf, enter the friendly name of one of the AWS accounts that you configured on the Configuration page or the name of the autodiscovered EC2 IAM role.",
                 Value=Ref(splunk_account_user)))
 
