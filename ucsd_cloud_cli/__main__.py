@@ -1,4 +1,7 @@
 from ucsd_cloud_cli import cli
 
-if __name__ == '__main__':
+def main():
     cli()
+
+if __name__ == '__main__':
+    main()

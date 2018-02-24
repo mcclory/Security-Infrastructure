@@ -51,8 +51,8 @@ setup(
     ],
     entry_points='''
         [console_scripts]
-        ucsd_cloud_cli=ucsd_cloud_cli:__main__
-        ccli=ucsd_cloud_cli:__main__
+        ucsd_cloud_cli=ucsd_cloud_cli.__main__:main
+        ccli=ucsd_cloud_cli.__main__:main
     ''',
     tests_require=test_requirements
 )
