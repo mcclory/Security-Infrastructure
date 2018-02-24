@@ -75,10 +75,11 @@ UCSD is utilizing the [AWS Plugin](http://docs.splunk.com/Documentation/AddOns/r
 
 The following will be configured to flow logs into S3:
 
-* CloudWatch Logs (including VPC Flow Logs)
 * CloudTrail
 
-This process will then fire SQS notifications which Splunk will use to determine which file(s) to pick up and ingest from the S3 bucket(s) configured. Within Splunk, the [SQS-based S3 input](http://docs.splunk.com/Documentation/AddOns/released/AWS/SQS-basedS3) should be used and wired up to the proper queue(s) and credentials. 
+This process will then fire SQS notifications which Splunk will use to determine which file(s) to pick up and ingest from the S3 bucket(s) configured. Within Splunk, the [SQS-based S3 input](http://docs.splunk.com/Documentation/AddOns/released/AWS/SQS-basedS3) should be used and wired up to the proper queue(s) and credentials.
+
+CloudWatch Logs have a specific structure for ingest into Splunk via the [Cloudwatch Log Input](http://docs.splunk.com/Documentation/AddOns/released/AWS/SQS-basedS3).
 
 ## Click CLI
 
@@ -102,9 +103,15 @@ This image shows the help string when a user is attempting to generate the log t
 
 This image is a screenshot of the parameters available when generating a CloudFormation template to point a given account's logs to the 'Target' account configured with the template generated above.
 
+### Source flow_log Arguments and Options
+
+![Source Flow Log Help](doc/source_flow_log_help.png)
+
+This image is a screenshot of the parameters available when generating a CloudFormation template to point a given VPC's flow logs to the in-account setup (as created by the `ccli source generate` template) to forward on for centralized storage.
+
 ### Prompt handling for CLI use
 
-![CLI Option Handling](doc/cli_options.png)
+![CLI Prompt Example](doc/cli_prompt.png)
 
 The above shows the CLI prompting the user for values including multi-value inputs that are parsed as comma separated value strings. To enable this at the command line, set the `CLI_PROMPT` environment variable to `TRUE`:
 
@@ -112,7 +119,7 @@ The above shows the CLI prompting the user for values including multi-value inpu
 export CLI_PROMPT=TRUE
 ```
 
-Options and arguments can be passed in via prompt or in non-interactive mode depending on whether or not this enmvironment variable is set.
+Options and arguments can be passed in via prompt or in non-interactive mode depending on whether or not this environment variable is set.
 
 # Process Flows
 
@@ -135,3 +142,4 @@ Command to generate target CloudFormation template for our 3 test accounts:
 ```bash
 python -m ucsd_cloud_cli target generate -a 802640662990 -a 969379222189 -a 169929244869
 ```
+802640662990,969379222189,169929244869
