@@ -12,8 +12,9 @@ import troposphere.cloudtrail as ct
 import troposphere.logs as cwl
 import troposphere.kinesis as k
 import troposphere.sqs as sqs
+import troposphere.sns as sns
 
-from awacs.aws import Allow, Statement, Principal, Policy, Condition, StringEquals
+from awacs.aws import Allow, Statement, Principal, Policy, Condition, StringEquals, ArnLike
 from awacs.kinesis import PutRecord as KinesisPutRecord
 from awacs.iam import PassRole as IAMPassRole
 from awacs.sts import AssumeRole
@@ -54,6 +55,7 @@ def _generate_splunk_policy(policy_name='splunkAllAccessPolicy', roles=[], users
     return iam.PolicyType(policy_name,
         PolicyName="%s20180224" % policy_name,
         Roles=roles,
+        Users=users,
         PolicyDocument=Policy(
             Statement=[
                 Statement(
@@ -89,6 +91,8 @@ def generate(account_list=None, region_list=None, file_location=None, output_key
     if type(account_list) == tuple:
         account_list = list(account_list)
 
+    parameter_groups = []
+
     region_list = region_list if region_list else ['us-west-1', 'us-west-2', 'us-east-1', 'us-east-2']
     t = Template()
     t.add_version("2010-09-09")
@@ -108,6 +112,9 @@ def generate(account_list=None, region_list=None, file_location=None, output_key
                                                   MinValue=24,
                                                   MaxValue=120,
                                                   Default=24))
+
+    parameter_groups.append({'Label': {'default': 'Log Stream Inputs'},
+                         'Parameters': [log_stream_shard_count.name, log_stream_retention_period.name]})
 
     log_stream = t.add_resource(k.Stream("LogStream",
         RetentionPeriodHours=Ref(log_stream_retention_period),
@@ -159,12 +166,25 @@ def generate(account_list=None, region_list=None, file_location=None, output_key
                                             Type="Number",
                                             Default=365*7))
 
+    parameter_groups.append({'Label': {'default': 'S3 Log Destination Parameters'},
+                             'Parameters': [bucket_name.name, ct_s3_key_prefix.name, glacier_migration_days.name, glacier_deletion_days.name]})
+
     queue = t.add_resource(sqs.Queue('s3DeliveryQueue',
                            MessageRetentionPeriod=14*24*60*60, # 14 d * 24 h * 60 m * 60 s
                            VisibilityTimeout=5*60)) # 5 m * 60 s per Splunk docs here: http://docs.splunk.com/Documentation/AddOns/released/AWS/ConfigureAWS#Configure_SQS
 
+    t.add_resource(sqs.QueuePolicy('s3DeliveryQueuePolicy',
+                   PolicyDocument=Policy(
+                   Statement=[Statement(
+                       Effect=Allow,
+                       Principal=Principal("AWS", "*"),
+                       Action=[asqs.SendMessage],
+                       Resource=[GetAtt(queue, 'Arn')],
+                       Condition=Condition(ArnLike("aws:SourceArn", Join('', ["arn:aws:s3:*:*:", Ref(bucket_name)]))))]),
+                   Queues=[Ref(queue)]))
+
     bucket = t.add_resource(s3.Bucket("LogDeliveryBucket",
-                            DependsOn=[log_stream.name],
+                            DependsOn=[log_stream.name, queue.name],
                             BucketName=Ref(bucket_name),
                             AccessControl="LogDeliveryWrite",
                             NotificationConfiguration=s3.NotificationConfiguration(
@@ -250,6 +270,8 @@ def generate(account_list=None, region_list=None, file_location=None, output_key
     t.add_output(Output("DeploymentAccount",
                  Value=AccountId,
                  Description="Convenience Output for referencing AccountID of the log aggregation account"))
+
+    t.add_metadata({"AWS::CloudFormation::Interface": {"ParameterGroups": parameter_groups}})
 
     if dry_run:
         print(t.to_json())

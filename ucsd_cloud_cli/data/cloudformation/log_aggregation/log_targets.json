@@ -1,6 +1,32 @@
 {
     "AWSTemplateFormatVersion": "2010-09-09",
     "Description": "UCSD Log Target AWS CloudFormation Template - this CFn template configures a given account to receive logs from other accounts so as to aggregate and then optionally forward those logs on to the UCSD Splunk installation.",
+    "Metadata": {
+        "AWS::CloudFormation::Interface": {
+            "ParameterGroups": [
+                {
+                    "Label": {
+                        "default": "Log Stream Inputs"
+                    },
+                    "Parameters": [
+                        "LogStreamShardCount",
+                        "LogStreamRetentionPeriod"
+                    ]
+                },
+                {
+                    "Label": {
+                        "default": "S3 Log Destination Parameters"
+                    },
+                    "Parameters": [
+                        "BucketName",
+                        "CloudTrailKeyPrefix",
+                        "LogMoveToGlacierInDays",
+                        "LogDeleteFromGlacierInDays"
+                    ]
+                }
+            ]
+        }
+    },
     "Outputs": {
         "BucketName": {
             "Description": "Name of the bucket for CloudTrail log delivery",
@@ -101,7 +127,8 @@
     "Resources": {
         "LogDeliveryBucket": {
             "DependsOn": [
-                "LogStream"
+                "LogStream",
+                "s3DeliveryQueue"
             ],
             "Properties": {
                 "AccessControl": "LogDeliveryWrite",
@@ -180,7 +207,65 @@
                             "Principal": {
                                 "Service": "cloudtrail.amazonaws.com"
                             },
-                            "Resource": []
+                            "Resource": [
+                                {
+                                    "Fn::Join": [
+                                        "",
+                                        [
+                                            {
+                                                "Fn::GetAtt": [
+                                                    "LogDeliveryBucket",
+                                                    "Arn"
+                                                ]
+                                            },
+                                            {
+                                                "Ref": "CloudTrailKeyPrefix"
+                                            },
+                                            "/AWSLogs/",
+                                            "802640662990",
+                                            "/*"
+                                        ]
+                                    ]
+                                },
+                                {
+                                    "Fn::Join": [
+                                        "",
+                                        [
+                                            {
+                                                "Fn::GetAtt": [
+                                                    "LogDeliveryBucket",
+                                                    "Arn"
+                                                ]
+                                            },
+                                            {
+                                                "Ref": "CloudTrailKeyPrefix"
+                                            },
+                                            "/AWSLogs/",
+                                            "969379222189",
+                                            "/*"
+                                        ]
+                                    ]
+                                },
+                                {
+                                    "Fn::Join": [
+                                        "",
+                                        [
+                                            {
+                                                "Fn::GetAtt": [
+                                                    "LogDeliveryBucket",
+                                                    "Arn"
+                                                ]
+                                            },
+                                            {
+                                                "Ref": "CloudTrailKeyPrefix"
+                                            },
+                                            "/AWSLogs/",
+                                            "169929244869",
+                                            "/*"
+                                        ]
+                                    ]
+                                }
+                            ]
                         }
                     ]
                 }
@@ -201,7 +286,7 @@
                             "{\"Version\" : \"2012-10-17\",\"Statement\" : [",
                             "{\"Sid\" : \"\",",
                             "\"Effect\" : \"Allow\",",
-                            "\"Principal\" : {\"AWS\" : []},",
+                            "\"Principal\" : {\"AWS\" : [\"802640662990\",\"969379222189\",\"169929244869\"]},",
                             "\"Action\" : \"logs:PutSubscriptionFilter\",",
                             "\"Resource\" : \"arn:aws:logs:",
                             {
@@ -389,6 +474,52 @@
             },
             "Type": "AWS::SQS::Queue"
         },
+        "s3DeliveryQueuePolicy": {
+            "Properties": {
+                "PolicyDocument": {
+                    "Statement": [
+                        {
+                            "Action": [
+                                "sqs:SendMessage"
+                            ],
+                            "Condition": {
+                                "ArnLike": {
+                                    "aws:SourceArn": {
+                                        "Fn::Join": [
+                                            "",
+                                            [
+                                                "arn:aws:s3:*:*:",
+                                                {
+                                                    "Ref": "BucketName"
+                                                }
+                                            ]
+                                        ]
+                                    }
+                                }
+                            },
+                            "Effect": "Allow",
+                            "Principal": {
+                                "AWS": "*"
+                            },
+                            "Resource": [
+                                {
+                                    "Fn::GetAtt": [
+                                        "s3DeliveryQueue",
+                                        "Arn"
+                                    ]
+                                }
+                            ]
+                        }
+                    ]
+                },
+                "Queues": [
+                    {
+                        "Ref": "s3DeliveryQueue"
+                    }
+                ]
+            },
+            "Type": "AWS::SQS::QueuePolicy"
+        },
         "splunkAccountUserCreds": {
             "Properties": {
                 "UserName": {
@@ -475,7 +606,12 @@
                     ]
                 },
                 "PolicyName": "splunkAllAccessPolicy20180224",
-                "Roles": []
+                "Roles": [],
+                "Users": [
+                    {
+                        "Ref": "splunkS3SQSUser"
+                    }
+                ]
             },
             "Type": "AWS::IAM::Policy"
         },
