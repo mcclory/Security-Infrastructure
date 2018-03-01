@@ -13,6 +13,7 @@ import troposphere.logs as cwl
 import troposphere.kinesis as k
 import troposphere.sqs as sqs
 import troposphere.sns as sns
+import troposphere.firehose as fh
 
 from awacs.aws import Allow, Statement, Principal, Policy, Condition, StringEquals, ArnLike
 from awacs.kinesis import PutRecord as KinesisPutRecord
@@ -115,6 +116,7 @@ def generate(account_list=None, region_list=None, file_location=None, output_key
 
     parameter_groups.append({'Label': {'default': 'Log Stream Inputs'},
                          'Parameters': [log_stream_shard_count.name, log_stream_retention_period.name]})
+
 
     log_stream = t.add_resource(k.Stream("LogStream",
         RetentionPeriodHours=Ref(log_stream_retention_period),
@@ -235,17 +237,9 @@ def generate(account_list=None, region_list=None, file_location=None, output_key
                                      RoleArn=GetAtt(log_ingest_iam_role, "Arn"),
                                      DependsOn=[log_ingest_iam_policy.name, bucket.name]))
 
-    splunk_account_user = t.add_resource(iam.User('splunkCWLClient',
-                                         Path='/',
-                                         UserName='splunkCWLClient'))
-
-    t.add_output(Output('splunkAccountUserName',
-                Description="The AWS account or EC2 IAM role the Splunk platform uses to access your CloudWatch Logs data. In Splunk Web, select an account from the drop-down list. In aws_cloudwatch_logs_tasks.conf, enter the friendly name of one of the AWS accounts that you configured on the Configuration page or the name of the autodiscovered EC2 IAM role.",
-                Value=Ref(splunk_account_user)))
-
     if output_keys:
         splunk_user_creds = t.add_resource(iam.AccessKey('splunkAccountUserCreds',
-                                           UserName=Ref(splunk_account_user)))
+                                           UserName=Ref(splunk_sqs_s3_user)))
 
         t.add_output(Output('splunkUserAccessKey',
                      Description='AWS Access Key for the user created for splunk to use when accessing logs',
