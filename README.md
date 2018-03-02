@@ -139,7 +139,7 @@ python -m ucsd_cloud_cli target generate -a 802640662990 -a 969379222189 -a 1699
 
 * Next, go to the account where logs will be deposited and deploy the generated CloudFormation template.
 
-[!Cloudformation Create Workflow](docs/log-target-cloudformation-create.png)
+![Cloudformation Create Workflow](docs/log-target-cloudformation-create.png)
 
 * Inputs will default for everything that can be defaulted, the following values will require inputs:
     * Stack Name - name this something memorable. This affects only the visible name of the stack in the AWS API/Console
@@ -153,11 +153,11 @@ python -m ucsd_cloud_cli target generate -a 802640662990 -a 969379222189 -a 1699
         * `LogDeleteFromGlacierInDays` - age in days when files in Glacier will be deleted
 * Note the outputs from the `log_targets.json`-generated stack.
 
-[!Cloudformation Outputs](doc/log-target-cloudformation-outputs.png)
+![Cloudformation Outputs](doc/log-target-cloudformation-outputs.png)
 
 * Next, for all accounts, deploy the `log_sources.json` template. The same template is used for all accounts and a pre-generated version can be found in this repository [here](ucsd_cloud_cli/data/cloudformation/log_aggregation/log_sources.json). Inputs for this template should be sourced from the outputs of the previous deployment of the `log_targets.json` template.
 
-[!Cloudformation Inputs for log_sources template](log-source-cloudformation-create.png)
+![Cloudformation Inputs for log_sources template](log-source-cloudformation-create.png)
 
 * Inputs should map as follows [input name in `log_sources.json` template <- output name from `log_targets.json`]:
     * `CloudTrailBucketName` <- output value `BucketName` from deployed `log_targets.json` stack
@@ -169,11 +169,11 @@ python -m ucsd_cloud_cli target generate -a 802640662990 -a 969379222189 -a 1699
     * `LogGroupRetentionInDays` - number of days the log group will buffer logs
 * Note the expected outputs for the deployment of the `log_sources.json` stack:
 
-[!Log Sources Outputs](doc/log-sources-cloudformation-outputs.png)
+![Log Sources Outputs](doc/log-sources-cloudformation-outputs.png)
 
 * To deploy the VPC Flow Logging setup, you will need to create one stack per VPC using the `vpc_flow_log.json` static template. A pre-generated copy can be found [here](ucsd_cloud_cli/data/cloudformation/log_aggregation/vpc_flow_log.json). Deploy this once per VPC deployed.
 
-[!VPC Flow Log CloudFormation Create](doc/vpc-flow-log-cloudformation-create.png)
+![VPC Flow Log CloudFormation Create](doc/vpc-flow-log-cloudformation-create.png)
 
 * Input mapping for this template sources one value from the deployment of the `log_sources.json` template in the same account:
     * `DeliveryLogsPermissionArn` <- output value `VPCFlowLogDeliveryLogsPermissionArn` from deployed `log_sources.json`
