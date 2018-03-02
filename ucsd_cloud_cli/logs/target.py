@@ -126,30 +126,6 @@ def generate(account_list=None, region_list=None, file_location=None, output_key
                  Value=GetAtt(log_stream, 'Arn'),
                  Description='ARN of the kinesis stream for log aggregation.'))
 
-    log_ingest_iam_role = t.add_resource(iam.Role('LogIngestIAMRole',
-        AssumeRolePolicyDocument=Policy(
-            Statement=[Statement(
-                Effect=Allow,
-                Action=[AssumeRole],
-                Principal=Principal("Service", Join('', ["logs.", Region, ".amazonaws.com"]))) ])))
-
-    log_ingest_iam_policy = t.add_resource(iam.PolicyType("LogIngestIAMPolicy",
-        PolicyName="logingestpolicy20180211",
-        Roles=[Ref(log_ingest_iam_role)],
-        PolicyDocument=Policy(
-            Statement=[
-                Statement(
-                    Effect=Allow,
-                    Action=[KinesisPutRecord],
-                    Resource=[GetAtt(log_stream, "Arn")]),
-                Statement(
-                    Effect=Allow,
-                    Action=[IAMPassRole],
-                    Resource=[GetAtt(log_ingest_iam_role, "Arn")])])))
-
-    t.add_output(Output('LogDeliveryIAMRole',
-                 Description="ARN of the IAM role to supply to the source_log template for log delivery to the Kinesis Stream",
-                 Value=GetAtt(log_ingest_iam_role, "Arn")))
 
     # Generate Bucket with Lifecycle Policies
 
@@ -251,13 +227,34 @@ def generate(account_list=None, region_list=None, file_location=None, output_key
                  Value=Ref(bucket)))
 
     # Log destination setup
-    log_destination_name = "LogIngestDestination"
-    log_destination = t.add_resource(cwl.Destination(log_destination_name,
-                                     DestinationName=log_destination_name,
-                                     DestinationPolicy=_generate_log_destination_policy(log_destination_name, account_list),
-                                     TargetArn=GetAtt(log_stream, "Arn"),
-                                     RoleArn=GetAtt(log_ingest_iam_role, "Arn"),
-                                     DependsOn=[log_ingest_iam_policy.name, bucket.name]))
+
+    cwl_to_kinesis_role = t.add_resource(iam.Role('CWLtoKinesisRole',
+                                         AssumeRolePolicyDocument=Policy(
+                                            Statement=[Statement(
+                                                Effect=Allow,
+                                                Action=[AssumeRole],
+                                                Principal=Principal("Service", Join('', ["logs.", Region, ".amazonaws.com"])))])))
+
+    cwl_to_kinesis_policy_link = t.add_resource(iam.PolicyType('CWLtoKinesisPolicy',
+                                               PolicyName='CWLtoKinesisPolicy',
+                                               Roles=[Ref(cwl_to_kinesis_role)],
+                                               PolicyDocument=Policy(
+                                                 Statement=[
+                                                     Statement(
+                                                         Effect=Allow,
+                                                         Resource=[GetAtt(log_stream, 'Arn')],
+                                                         Action=[akinesis.PutRecord]),
+                                                     Statement(
+                                                         Effect=Allow,
+                                                         Resource=[GetAtt(cwl_to_kinesis_role, 'Arn')],
+                                                         Action=[IAMPassRole])])))
+
+    log_destination = t.add_resource(cwl.Destination('CWLtoKinesisDestination',
+                                     DependsOn=[cwl_to_kinesis_policy_link.name],
+                                     DestinationName='CWLtoKinesisDestination',
+                                     DestinationPolicy=_generate_log_destination_policy_test('CWLtoKinesisDestination', account_list),
+                                     RoleArn=GetAtt(cwl_to_kinesis_role, 'Arn'),
+                                     TargetArn=GetAtt(log_stream, 'Arn')))
 
     if output_keys:
         splunk_user_creds = t.add_resource(iam.AccessKey('splunkAccountUserCreds',
@@ -276,13 +273,6 @@ def generate(account_list=None, region_list=None, file_location=None, output_key
                  Description="The AWS region that contains the data. In aws_cloudwatch_logs_tasks.conf, enter the region ID.",
                  Value=Region))
 
-#    t.add_output(Output('splunkCWLGroups',
-#                 description="A comma-separated list of log group names. Note: Wildcard is not supported for configuring log group names in the current release."))
-
-    t.add_output(Output("LogDeliveryDestinationArn",
-                 Value=GetAtt(log_destination, "Arn"),
-                 Description="ARN of the Log Destination for log aggregation via CloudWatch Logs"))
-
     t.add_output(Output("DeploymentAccount",
                  Value=AccountId,
                  Description="Convenience Output for referencing AccountID of the log aggregation account"))
@@ -297,6 +287,18 @@ def generate(account_list=None, region_list=None, file_location=None, output_key
             f.write(t.to_json())
 
 
+def _generate_log_destination_policy_test(log_destination_name, account_list=[]):
+    """Helper method to generate the log destination policy. Per Account in `account_list` build a policy document tha allows the account list for the given region to write to the log destination.
+    This is complicated by the issue that CloudFormation takes this as a string vs. as a Policy/JSON document, so here we are, building a string from a JSON doc in pieces. Given that it's not a JSON doc directly in the template, all this work is to ensure that the AWS AccountID isn't needed as a static string input thus making this portable vs. needing to be hard coded per account."""
+    policy_doc = []
+
+    policy_doc.append('{"Version" : "2012-10-17","Statement" : [{"Sid" : "","Effect" : "Allow","Principal" : {"AWS" : [' + ','.join(['"%s"' % s for s in account_list]) + ']},')
+    policy_doc.append('"Action" : "logs:PutSubscriptionFilter","Resource" : "arn:aws:logs:')
+    policy_doc.append(Join(':', [Region, AccountId, "destination", log_destination_name]))
+    policy_doc.append('"}]}')
+    return Join("", policy_doc)
+
+
 
 def _generate_log_destination_policy(log_destination_name, account_list=[]):
     """Helper method to generate the log destination policy. Per Account in `account_list` build a policy document tha allows the account list for the given region to write to the log destination.
@@ -304,12 +306,15 @@ def _generate_log_destination_policy(log_destination_name, account_list=[]):
     policy_doc = []
 
     policy_doc.append('{"Version" : "2012-10-17","Statement" : [')
-    policy_doc.append('{"Sid" : "",')
-    policy_doc.append('"Effect" : "Allow",')
-    policy_doc.append('"Principal" : {"AWS" : [' + ','.join(['"%s"' % s for s in account_list]) + ']},')
-    policy_doc.append('"Action" : "logs:PutSubscriptionFilter",')
-    policy_doc.append('"Resource" : "arn:aws:logs:')
-    policy_doc.append(Join(':', [Region, AccountId, "destination", log_destination_name]))
-    policy_doc.append('"}')
+
+    for s in account_list:
+        policy_doc.append('{"Sid" : "","Effect" : "Allow","Principal" : {"AWS" : "%s"},"Action" : "logs:PutSubscriptionFilter", "Resource" : "arn:aws:logs:' % s)
+        policy_doc.append(Join(':', [Region, AccountId, "destination", log_destination_name]))
+        policy_doc.append('"}')
+        policy_doc.append(',')
+
+    if policy_doc[-1] == ',':
+        policy_doc = policy_doc[:-1]
+
     policy_doc.append(']}')
     return Join("", policy_doc)
