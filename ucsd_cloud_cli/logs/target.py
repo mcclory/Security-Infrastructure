@@ -119,12 +119,19 @@ def generate(account_list=None, region_list=None, file_location=None, output_key
 
 
     log_stream = t.add_resource(k.Stream("LogStream",
-        RetentionPeriodHours=Ref(log_stream_retention_period),
-        ShardCount=Ref(log_stream_shard_count)))
+                                RetentionPeriodHours=Ref(log_stream_retention_period),
+                                ShardCount=Ref(log_stream_shard_count)))
+
+    t.add_output(Output('SplunkKinesisLogStream',
+                 Value=GetAtt(log_stream, 'Arn'),
+                 Description='ARN of the kinesis stream for log aggregation.'))
 
     log_ingest_iam_role = t.add_resource(iam.Role('LogIngestIAMRole',
         AssumeRolePolicyDocument=Policy(
-            Statement=[Statement( Effect=Allow, Action=[AssumeRole], Principal=Principal("Service", Join(".", ["logs", Region, "amazonaws.com"]))) for region_name in region_list])))
+            Statement=[Statement(
+                Effect=Allow,
+                Action=[AssumeRole],
+                Principal=Principal("Service", Join('', ["logs.", Region, ".amazonaws.com"]))) ])))
 
     log_ingest_iam_policy = t.add_resource(iam.PolicyType("LogIngestIAMPolicy",
         PolicyName="logingestpolicy20180211",
@@ -171,9 +178,24 @@ def generate(account_list=None, region_list=None, file_location=None, output_key
     parameter_groups.append({'Label': {'default': 'S3 Log Destination Parameters'},
                              'Parameters': [bucket_name.name, ct_s3_key_prefix.name, glacier_migration_days.name, glacier_deletion_days.name]})
 
+    dead_letter_queue = t.add_resource(sqs.Queue('deadLetterQueue'))
+
     queue = t.add_resource(sqs.Queue('s3DeliveryQueue',
                            MessageRetentionPeriod=14*24*60*60, # 14 d * 24 h * 60 m * 60 s
-                           VisibilityTimeout=5*60)) # 5 m * 60 s per Splunk docs here: http://docs.splunk.com/Documentation/AddOns/released/AWS/ConfigureAWS#Configure_SQS
+                           VisibilityTimeout=5*60,
+                           RedrivePolicy=sqs.RedrivePolicy(
+                               deadLetterTargetArn=GetAtt(dead_letter_queue, 'Arn'),
+                               maxReceiveCount=10
+                           ))) # 5 m * 60 s per Splunk docs here: http://docs.splunk.com/Documentation/AddOns/released/AWS/ConfigureAWS#Configure_SQS
+
+    t.add_output(Output('SplunkS3Queue',
+                 Value=GetAtt(queue, 'Arn'),
+                 Description='Queue for Splunk SQS S3 ingest'))
+
+    t.add_output(Output('SplunkS3DeadLetterQueue',
+                Value=GetAtt(dead_letter_queue, 'Arn'),
+                Description="Dead letter queue for Splunk SQS S3 ingest"))
+
 
     t.add_resource(sqs.QueuePolicy('s3DeliveryQueuePolicy',
                    PolicyDocument=Policy(

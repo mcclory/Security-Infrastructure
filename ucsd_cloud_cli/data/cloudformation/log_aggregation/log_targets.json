@@ -58,6 +58,33 @@
                 ]
             }
         },
+        "SplunkKinesisLogStream": {
+            "Description": "ARN of the kinesis stream for log aggregation.",
+            "Value": {
+                "Fn::GetAtt": [
+                    "LogStream",
+                    "Arn"
+                ]
+            }
+        },
+        "SplunkS3DeadLetterQueue": {
+            "Description": "Dead letter queue for Splunk SQS S3 ingest",
+            "Value": {
+                "Fn::GetAtt": [
+                    "deadLetterQueue",
+                    "Arn"
+                ]
+            }
+        },
+        "SplunkS3Queue": {
+            "Description": "Queue for Splunk SQS S3 ingest",
+            "Value": {
+                "Fn::GetAtt": [
+                    "s3DeliveryQueue",
+                    "Arn"
+                ]
+            }
+        },
         "splunkCWLRegion": {
             "Description": "The AWS region that contains the data. In aws_cloudwatch_logs_tasks.conf, enter the region ID.",
             "Value": {
@@ -373,73 +400,13 @@
                             "Principal": {
                                 "Service": {
                                     "Fn::Join": [
-                                        ".",
+                                        "",
                                         [
-                                            "logs",
+                                            "logs.",
                                             {
                                                 "Ref": "AWS::Region"
                                             },
-                                            "amazonaws.com"
-                                        ]
-                                    ]
-                                }
-                            }
-                        },
-                        {
-                            "Action": [
-                                "sts:AssumeRole"
-                            ],
-                            "Effect": "Allow",
-                            "Principal": {
-                                "Service": {
-                                    "Fn::Join": [
-                                        ".",
-                                        [
-                                            "logs",
-                                            {
-                                                "Ref": "AWS::Region"
-                                            },
-                                            "amazonaws.com"
-                                        ]
-                                    ]
-                                }
-                            }
-                        },
-                        {
-                            "Action": [
-                                "sts:AssumeRole"
-                            ],
-                            "Effect": "Allow",
-                            "Principal": {
-                                "Service": {
-                                    "Fn::Join": [
-                                        ".",
-                                        [
-                                            "logs",
-                                            {
-                                                "Ref": "AWS::Region"
-                                            },
-                                            "amazonaws.com"
-                                        ]
-                                    ]
-                                }
-                            }
-                        },
-                        {
-                            "Action": [
-                                "sts:AssumeRole"
-                            ],
-                            "Effect": "Allow",
-                            "Principal": {
-                                "Service": {
-                                    "Fn::Join": [
-                                        ".",
-                                        [
-                                            "logs",
-                                            {
-                                                "Ref": "AWS::Region"
-                                            },
-                                            "amazonaws.com"
+                                            ".amazonaws.com"
                                         ]
                                     ]
                                 }
@@ -461,9 +428,21 @@
             },
             "Type": "AWS::Kinesis::Stream"
         },
+        "deadLetterQueue": {
+            "Type": "AWS::SQS::Queue"
+        },
         "s3DeliveryQueue": {
             "Properties": {
                 "MessageRetentionPeriod": 1209600,
+                "RedrivePolicy": {
+                    "deadLetterTargetArn": {
+                        "Fn::GetAtt": [
+                            "deadLetterQueue",
+                            "Arn"
+                        ]
+                    },
+                    "maxReceiveCount": 10
+                },
                 "VisibilityTimeout": 300
             },
             "Type": "AWS::SQS::Queue"

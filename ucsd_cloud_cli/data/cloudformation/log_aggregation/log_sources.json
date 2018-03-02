@@ -79,11 +79,6 @@
             "Description": "ARN of the Log Destination to send logs to.",
             "Type": "String"
         },
-        "LogDeliveryIAMRole": {
-            "Default": "",
-            "Description": "ARN of the Role created to allow CloudWatchLogs to dump logs to the Log Destination",
-            "Type": "String"
-        },
         "LogGroupRetentionInDays": {
             "Default": 1,
             "Description": "Number of days to retain logs in the CloudWatch Log Group",

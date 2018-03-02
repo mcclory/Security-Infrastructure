@@ -105,11 +105,6 @@ def generate(dry_run, file_location=None):
                                           Default="",
                                           Description="ARN of the Log Destination to send logs to."))
 
-    delivery_role_arn = t.add_parameter(Parameter('LogDeliveryIAMRole',
-                                        Type="String",
-                                        Default="",
-                                        Description="ARN of the Role created to allow CloudWatchLogs to dump logs to the Log Destination"))
-
         # resources
     cwl_group_retention = t.add_parameter(Parameter("LogGroupRetentionInDays",
                                           Type="Number",
