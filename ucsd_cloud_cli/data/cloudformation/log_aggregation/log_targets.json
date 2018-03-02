@@ -67,6 +67,15 @@
                 ]
             }
         },
+        "childAccountLogDeliveryDestinationArn": {
+            "Description": "Log Destination to specify when deploying the source cloudformation template in other accounts.",
+            "Value": {
+                "Fn::GetAtt": [
+                    "CWLtoKinesisDestination",
+                    "Arn"
+                ]
+            }
+        },
         "splunkCWLRegion": {
             "Description": "The AWS region that contains the data. In aws_cloudwatch_logs_tasks.conf, enter the region ID.",
             "Value": {

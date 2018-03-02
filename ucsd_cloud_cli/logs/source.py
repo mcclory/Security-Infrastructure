@@ -120,7 +120,7 @@ def generate(dry_run, file_location=None):
     cwl_subscription = t.add_resource(cwl.SubscriptionFilter('SecurityLogShippingFilter',
                                       DestinationArn=Ref(delivery_stream_arn),
                                       LogGroupName=Ref(cwl_group),
-                                      FilterPattern="{$.userIdentity.type = Root}"))
+                                      FilterPattern=""))
 
     cwl_primary_stream = t.add_resource(cwl.LogStream('PrimaryLogStream',
                                         LogGroupName=Ref(cwl_group),

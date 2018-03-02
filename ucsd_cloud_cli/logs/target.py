@@ -256,6 +256,10 @@ def generate(account_list=None, region_list=None, file_location=None, output_key
                                      RoleArn=GetAtt(cwl_to_kinesis_role, 'Arn'),
                                      TargetArn=GetAtt(log_stream, 'Arn')))
 
+    t.add_output(Output('childAccountLogDeliveryDestinationArn',
+                 Value=GetAtt(log_destination,'Arn'),
+                 Description='Log Destination to specify when deploying the source cloudformation template in other accounts.'))
+
     if output_keys:
         splunk_user_creds = t.add_resource(iam.AccessKey('splunkAccountUserCreds',
                                            UserName=Ref(splunk_sqs_s3_user)))

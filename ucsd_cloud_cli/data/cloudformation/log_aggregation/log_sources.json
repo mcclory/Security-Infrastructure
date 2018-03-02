@@ -102,7 +102,7 @@
                 "DestinationArn": {
                     "Ref": "LogDeliveryDestinationArn"
                 },
-                "FilterPattern": "{$.userIdentity.type = Root}",
+                "FilterPattern": "",
                 "LogGroupName": {
                     "Ref": "SecurityLogShippingGroup"
                 }
