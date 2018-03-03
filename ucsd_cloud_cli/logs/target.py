@@ -122,6 +122,57 @@ def generate(account_list=None, region_list=None, file_location=None, output_key
                                 RetentionPeriodHours=Ref(log_stream_retention_period),
                                 ShardCount=Ref(log_stream_shard_count)))
 
+    firehose_bucket = t.add_resource(s3.Bucket('LogS3DeliveryBucket'))
+
+    firehose_delivery_role = t.add_resource(iam.Role('LogS3DeliveryRole',
+                                            AssumeRolePolicyDocument=Policy(
+                                                Statement=[Statement(
+                                                Effect=Allow,
+                                                Action=[AssumeRole],
+                                                Principal=Principal('Service', 'firehose.amazonaws.com'),
+                                                Condition=Condition(StringEquals('sts:ExternalId', AccountId)))])))
+
+    log_s3_delivery_policy = t.add_resource(iam.PolicyType('LogS3DeliveryPolicy',
+                                           Roles=[Ref(firehose_delivery_role)],
+                                           PolicyName='LogS3DeliveryPolicy',
+                                           PolicyDocument=Policy(
+                                               Statement=[Statement(
+                                                   Effect=Allow,
+                                                   Action=[as3.AbortMultipartUpload,
+                                                           as3.GetBucketLocation,
+                                                           as3.GetObject,
+                                                           as3.ListBucket,
+                                                           as3.ListBucketMultipartUploads,
+                                                           as3.PutObject],
+                                                   Resource=[
+                                                        Join('', ['arn:aws:s3:::', Ref(firehose_bucket)]),
+                                                        Join('', ['arn:aws:s3:::', Ref(firehose_bucket), '*'])]),
+                                                Statement(
+                                                    Effect=Allow,
+                                                    Action=[akinesis.Action('Get*'), akinesis.DescribeStream, akinesis.ListStreams],
+                                                    Resource=[
+                                                        GetAtt(log_stream, 'Arn')
+                                                    ])])))
+
+    s3_firehose = t.add_resource(fh.DeliveryStream('LogToS3DeliveryStream',
+                                 DependsOn=[log_s3_delivery_policy.name],
+                                 DeliveryStreamName='LogToS3DeliveryStream',
+                                 DeliveryStreamType='KinesisStreamAsSource',
+                                 KinesisStreamSourceConfiguration=fh.KinesisStreamSourceConfiguration(
+                                    KinesisStreamARN=GetAtt(log_stream, 'Arn'),
+                                    RoleARN=GetAtt(firehose_delivery_role, 'Arn')
+                                 ),
+                                 S3DestinationConfiguration=fh.S3DestinationConfiguration(
+                                    BucketARN=GetAtt(firehose_bucket, 'Arn'),
+                                    BufferingHints=fh.BufferingHints(
+                                        IntervalInSeconds=300,
+                                        SizeInMBs=50
+                                    ) ,
+                                    CompressionFormat='UNCOMPRESSED',
+                                    Prefix='firehose/' ,
+                                    RoleARN=GetAtt(firehose_delivery_role, 'Arn'),
+                                 )))
+
     t.add_output(Output('SplunkKinesisLogStream',
                  Value=GetAtt(log_stream, 'Arn'),
                  Description='ARN of the kinesis stream for log aggregation.'))

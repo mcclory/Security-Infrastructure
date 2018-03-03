@@ -181,6 +181,66 @@ python -m ucsd_cloud_cli target generate -a 802640662990 -a 969379222189 -a 1699
     * `TrafficType` - Type of traffic to be captured. See [AWS Docs](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-ec2-flowlog.html#cfn-ec2-flowlog-traffictype) for more information.
     * `VPCId` - Lookup for the VPC to apply this logging setup to
 
+### Splunk Add-On Configuration
+
+Install the [AWS plugin](https://splunkbase.splunk.com/app/1876/) manually on the Index splunk server. Configuration documentation is available [here](http://docs.splunk.com/Documentation/AddOns/latest/AWS/Description)
+
+* Install the AWS Plugin manually on the Indexer within the existing Splunk deployment.
+
+#### Add AWS account to plugin configuration
+
+At the home page, once you login to Splunk Enterprise, click *“Splunk Add-on for AWS”* in the navigation bar to the left.
+
+1. At the top of the screen click on *Configuration* in the app navigation bar. The Account tab by default will be selected.
+1. Click the *Add* button to the top right of the screen.
+1. Enter a name that describes the function of the connection to the account is connected to.  Be sure to use the standard UCSD naming format policy (not sure what that is please add)
+1. Enter the *Key ID* and *Secret Key* for an AWS account that the Splunk platform should use for access. This information can be found in: *AWS Account > Management Services > CloudFormation > seimLogAggregationStack > Outputs* under *splunkUserAccessKey* and *splunkUserSecretKey*. *splunkUserAccessKey = Key ID* and *splunkUserSecretKey = Secret Key*.
+1. Select “Global” for the *Region Category*.
+1. Click *Add*.
+
+#### Configure Inputs
+
+Currently there are 2 inputs you need to configure, CloudWatch Logs that come in via Kinesis and CloudTrail Logs via S3 and SQS.
+
+*CloudTrail via S3 and SQS:*
+
+1. At the top of the screen click on *Inputs* in the app navigation bar. The Account tab by default will be selected.
+1. Click the *Create New Input* button to the top right of the screen.
+1. Select *CloudTrail > SQS Based S3*
+1. Enter a name that describes the type of input and method.  Be sure to use the standard UCSD naming format policy (not sure what that is please add)
+1. In *AWS Account* select *seimLogAggregationStack*
+1. In *AWS Region* select *US West (Oregon)*
+1. In *SQS Queue Name* select *seimLogAggregationStack-s3DeliverQueue-...*
+1. Click *Submit*
+
+*CloudWatch logs via Kinesis:*
+1. At the top of the screen click on *Inputs* in the app navigation bar. The Account tab by default will be selected.
+1. Click the *Create New Input* button to the top right of the screen.
+1. Select *Custom Data type > Kinesis*
+1. Enter a name that describes the type of input and method.  Be sure to use the standard UCSD naming format policy (not sure what that is please add)
+1. In *AWS Account* select *seimLogAggregationStack*
+1. In *AWS Region* select *US West (Oregon)*
+1. In *Stream Name* select *seimLogAggregationStack-LogStream-...*
+1. In *Record Format* select *CloudWatchLogs*
+1. In Source Type select *aws:kinesis*
+1. Click *Submit*
+
+*(Optional) VPCFlowLogs via CloudWatch via Kinesis:*
+
+1. At the top of the screen click on *Inputs* in the app navigation bar. The Account tab by default will be selected.
+1. Click the *Create New Input* button to the top right of the screen.
+1. Select *Custom Data type > Kinesis*
+1. Enter a name that describes the type of input and method.  Be sure to use the standard UCSD naming format policy (not sure what that is please add)
+1. In *AWS Account* select *seimLogAggregationStack*
+1. In *AWS Region* select *US West (Oregon)*
+1. In *Stream Name* select *seimLogAggregationStack-LogStream-...*
+1. In *Record Format* select *CloudWatchLogs*
+1. In *Source Type* select *aws:cloudwatchlogs:vpcflow*
+1. Click *Submit*
+
+Note: further configurations may be needed after longer periods of testing (i.e. batch size)
+
+
 ## Instance Isolation Workflow
 
 ![Instance Isolation Workflow](doc/instance-isolation-workflow.png)

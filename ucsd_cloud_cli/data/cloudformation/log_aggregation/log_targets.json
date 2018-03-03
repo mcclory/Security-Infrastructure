@@ -402,6 +402,101 @@
             },
             "Type": "AWS::S3::BucketPolicy"
         },
+        "LogS3DeliveryBucket": {
+            "Type": "AWS::S3::Bucket"
+        },
+        "LogS3DeliveryPolicy": {
+            "Properties": {
+                "PolicyDocument": {
+                    "Statement": [
+                        {
+                            "Action": [
+                                "s3:AbortMultipartUpload",
+                                "s3:GetBucketLocation",
+                                "s3:GetObject",
+                                "s3:ListBucket",
+                                "s3:ListBucketMultipartUploads",
+                                "s3:PutObject"
+                            ],
+                            "Effect": "Allow",
+                            "Resource": [
+                                {
+                                    "Fn::Join": [
+                                        "",
+                                        [
+                                            "arn:aws:s3:::",
+                                            {
+                                                "Ref": "LogS3DeliveryBucket"
+                                            }
+                                        ]
+                                    ]
+                                },
+                                {
+                                    "Fn::Join": [
+                                        "",
+                                        [
+                                            "arn:aws:s3:::",
+                                            {
+                                                "Ref": "LogS3DeliveryBucket"
+                                            },
+                                            "*"
+                                        ]
+                                    ]
+                                }
+                            ]
+                        },
+                        {
+                            "Action": [
+                                "kinesis:Get*",
+                                "kinesis:DescribeStream",
+                                "kinesis:ListStreams"
+                            ],
+                            "Effect": "Allow",
+                            "Resource": [
+                                {
+                                    "Fn::GetAtt": [
+                                        "LogStream",
+                                        "Arn"
+                                    ]
+                                }
+                            ]
+                        }
+                    ]
+                },
+                "PolicyName": "LogS3DeliveryPolicy",
+                "Roles": [
+                    {
+                        "Ref": "LogS3DeliveryRole"
+                    }
+                ]
+            },
+            "Type": "AWS::IAM::Policy"
+        },
+        "LogS3DeliveryRole": {
+            "Properties": {
+                "AssumeRolePolicyDocument": {
+                    "Statement": [
+                        {
+                            "Action": [
+                                "sts:AssumeRole"
+                            ],
+                            "Condition": {
+                                "StringEquals": {
+                                    "sts:ExternalId": {
+                                        "Ref": "AWS::AccountId"
+                                    }
+                                }
+                            },
+                            "Effect": "Allow",
+                            "Principal": {
+                                "Service": "firehose.amazonaws.com"
+                            }
+                        }
+                    ]
+                }
+            },
+            "Type": "AWS::IAM::Role"
+        },
         "LogStream": {
             "Properties": {
                 "RetentionPeriodHours": {
@@ -412,6 +507,50 @@
                 }
             },
             "Type": "AWS::Kinesis::Stream"
+        },
+        "LogToS3DeliveryStream": {
+            "DependsOn": [
+                "LogS3DeliveryPolicy"
+            ],
+            "Properties": {
+                "DeliveryStreamName": "LogToS3DeliveryStream",
+                "DeliveryStreamType": "KinesisStreamAsSource",
+                "KinesisStreamSourceConfiguration": {
+                    "KinesisStreamARN": {
+                        "Fn::GetAtt": [
+                            "LogStream",
+                            "Arn"
+                        ]
+                    },
+                    "RoleARN": {
+                        "Fn::GetAtt": [
+                            "LogS3DeliveryRole",
+                            "Arn"
+                        ]
+                    }
+                },
+                "S3DestinationConfiguration": {
+                    "BucketARN": {
+                        "Fn::GetAtt": [
+                            "LogS3DeliveryBucket",
+                            "Arn"
+                        ]
+                    },
+                    "BufferingHints": {
+                        "IntervalInSeconds": 300,
+                        "SizeInMBs": 50
+                    },
+                    "CompressionFormat": "UNCOMPRESSED",
+                    "Prefix": "firehose/",
+                    "RoleARN": {
+                        "Fn::GetAtt": [
+                            "LogS3DeliveryRole",
+                            "Arn"
+                        ]
+                    }
+                }
+            },
+            "Type": "AWS::KinesisFirehose::DeliveryStream"
         },
         "deadLetterQueue": {
             "Type": "AWS::SQS::Queue"
