@@ -153,7 +153,7 @@ python -m ucsd_cloud_cli target generate -a 802640662990 -a 969379222189 -a 1699
         * `LogDeleteFromGlacierInDays` - age in days when files in Glacier will be deleted
 * Note the outputs from the `log_targets.json`-generated stack.
 
-![Cloudformation Outputs](doc/log-target-cloudformation-outputs.png)
+![Cloudformation Outputs](doc/log-target-cloudformation-output.png)
 
 * Next, for all accounts, deploy the `log_sources.json` template. The same template is used for all accounts and a pre-generated version can be found in this repository [here](ucsd_cloud_cli/data/cloudformation/log_aggregation/log_sources.json). Inputs for this template should be sourced from the outputs of the previous deployment of the `log_targets.json` template.
 
