@@ -157,7 +157,7 @@ python -m ucsd_cloud_cli target generate -a 802640662990 -a 969379222189 -a 1699
 
 * Next, for all accounts, deploy the `log_sources.json` template. The same template is used for all accounts and a pre-generated version can be found in this repository [here](ucsd_cloud_cli/data/cloudformation/log_aggregation/log_sources.json). Inputs for this template should be sourced from the outputs of the previous deployment of the `log_targets.json` template.
 
-![Cloudformation Inputs for log_sources template](log-source-cloudformation-create.png)
+![Cloudformation Inputs for log_sources template](doc/log-source-cloudformation-create.png)
 
 * Inputs should map as follows [input name in `log_sources.json` template <- output name from `log_targets.json`]:
     * `CloudTrailBucketName` <- output value `BucketName` from deployed `log_targets.json` stack
