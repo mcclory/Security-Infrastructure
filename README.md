@@ -139,7 +139,7 @@ python -m ucsd_cloud_cli target generate -a 802640662990 -a 969379222189 -a 1699
 
 * Next, go to the account where logs will be deposited and deploy the generated CloudFormation template.
 
-![Cloudformation Create Workflow](docs/log-target-cloudformation-create.png)
+![Cloudformation Create Workflow](doc/log-target-cloudformation-create.png)
 
 * Inputs will default for everything that can be defaulted, the following values will require inputs:
     * Stack Name - name this something memorable. This affects only the visible name of the stack in the AWS API/Console
