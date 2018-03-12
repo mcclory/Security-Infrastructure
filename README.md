@@ -2,6 +2,8 @@
 
 This tool set is designed to enable command-line-level access to common functions related to the security workflow(s) defined within this readme document for the UCSD team to use when configuring their Amazon Web Services environment(s).
 
+This process is based off of the AWS Documentation related to cross-account log shipping here: https://docs.aws.amazon.com/AmazonCloudWatch/latest/logs/CrossAccountSubscriptions.html
+
 ## Development Environment Prerequisites
 
 To work on this toolset, you will need several basic requirements installed. We follow a very idiomatic/standard setup for working with Python:
@@ -56,7 +58,7 @@ docker build -t ucsd_cloud_cli .
 This will build an `alpine` and `python3.6`-based docker container named `ucsd_cloud_cli` locally. Running the Command Line Interface (CLI) through this interface is straightforward:
 
 ```bash
-docker run -v $(HOME)/.aws:/root/.aws ucsd_cloud_cli <command> <arguments> <options>
+docker run -v $(HOME)/.aws:/root/.aws ucsd_cloud_cli <command> <arguments> <options> --dry-run
 ```
 
 This is functionally equivalent to running the above command `ucsd_cloud_cli <command> <arguments> <options>` with the benefit of running it in an consistent Docker container. Note that we also assume that you've set up a local credentials file and we simply map it in via a volume mount to the container.
