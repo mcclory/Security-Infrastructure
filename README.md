@@ -52,8 +52,10 @@ Installation of this project from the command line is simple:
 If you'd prefer to use the Docker image and have Docker installed locally, once you've downloaded (`git clone` or otherwise) this project, you can build with the following command:
 
 ```bash
-docker build -t ucsd_cloud_cli .
+docker build -t ucsd_cloud_cli -f Dockerfile .
 ```
+
+For Windows-based machines running Docker, please make sure you've set [Docker to run for Linux Containers](https://github.com/docker/for-win/issues/1224) (depending on Docker version) or dig into the information on [LinuxKit setup for Docker](https://blog.docker.com/2017/09/preview-linux-containers-on-windows/).
 
 This will build an `alpine` and `python3.6`-based docker container named `ucsd_cloud_cli` locally. Running the Command Line Interface (CLI) through this interface is straightforward:
 
