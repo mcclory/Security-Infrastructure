@@ -57,7 +57,7 @@ docker build -t ucsd_cloud_cli -f Dockerfile .
 
 For Windows-based machines running Docker, please make sure you've set [Docker to run for Linux Containers](https://github.com/docker/for-win/issues/1224) (depending on Docker version) or dig into the information on [LinuxKit setup for Docker](https://blog.docker.com/2017/09/preview-linux-containers-on-windows/).
 
-This will build an `alpine` and `python3.6`-based docker container named `ucsd_cloud_cli` locally. Running the Command Line Interface (CLI) through this interface is straightforward:
+This will build an `alpine` and `python3.6`-based docker container named `ucsd_cloud_cli` locally. Running the Command Line Interface (CLI) through this interface is straightforward. Note that the specific commands, arguments, options and means of interacting with this CLI toolset are further defined in the [Click-CLI](#Click-CLI) section below.
 
 ```bash
 docker run -v $(HOME)/.aws:/root/.aws ucsd_cloud_cli <command> <arguments> <options> --dry-run
