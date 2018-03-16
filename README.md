@@ -4,6 +4,20 @@ This tool set is designed to enable command-line-level access to common function
 
 This process is based off of the AWS Documentation related to cross-account log shipping here: https://docs.aws.amazon.com/AmazonCloudWatch/latest/logs/CrossAccountSubscriptions.html
 
+## Note on Usage Patterns
+
+This document defines 3 usage patterns:
+
+* Installed locally
+* In-place Development using VirtualEnvironments
+* Docker containerized deployment
+
+In all cases, the output is identical - the three workflows execute the same exact code. For the purposes of this document, in examples pertaining to command-line interactions the following command components are fully interchangable:
+
+* `ccli` or `ucsd_cloud_cli` - for the installed python package method
+* `python -m ucsd_cloud_cli` - for the local development execution method
+* `docker run ucsd_cloud_cli` - for the Docker containerized method
+
 ## Development Environment Prerequisites
 
 To work on this toolset, you will need several basic requirements installed. We follow a very idiomatic/standard setup for working with Python:
